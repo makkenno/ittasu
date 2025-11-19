@@ -154,6 +154,21 @@ export function GraphArea({
     setSelectedNodeIds(new Set(nodes.map((n) => n.id)));
   }, []);
 
+  const handleAddTaskAtViewCenter = useCallback(() => {
+    if (rfInstance) {
+      // 現在のビューポートの中心を取得
+      const viewport = rfInstance.getViewport();
+      const { x: viewX, y: viewY, zoom } = viewport;
+
+      const centerX = -viewX / zoom + 900 / zoom;
+      const centerY = -viewY / zoom + 250 / zoom;
+
+      onAddTask?.({ x: centerX, y: centerY });
+    } else {
+      onAddTask?.();
+    }
+  }, [rfInstance, onAddTask]);
+
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
       if (!rfInstance) return;
@@ -278,8 +293,8 @@ export function GraphArea({
 
       <button
         type="button"
-        onClick={() => onAddTask?.()}
-        className="absolute bottom-12 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+        onClick={handleAddTaskAtViewCenter}
+        className="absolute bottom-20 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
         title="新しいタスクを追加"
       >
         <Plus className="w-5 h-5" />
