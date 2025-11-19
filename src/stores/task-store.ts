@@ -24,7 +24,7 @@ interface TaskStore {
 
   updateTaskPosition: (
     taskId: string,
-    position: { x: number; y: number },
+    position: { x: number; y: number }
   ) => void;
 
   addChildTask: (position?: { x: number; y: number }) => void;
@@ -59,7 +59,7 @@ export const useTaskStore = create<TaskStore>()(
           nodes: state.nodes.map((node) =>
             node.id === taskId
               ? { ...node, title, updatedAt: new Date() }
-              : node,
+              : node
           ),
         }));
       },
@@ -67,9 +67,7 @@ export const useTaskStore = create<TaskStore>()(
       updateTaskMemo: (taskId: string, memo: string) => {
         set((state) => ({
           nodes: state.nodes.map((node) =>
-            node.id === taskId
-              ? { ...node, memo, updatedAt: new Date() }
-              : node,
+            node.id === taskId ? { ...node, memo, updatedAt: new Date() } : node
           ),
         }));
       },
@@ -80,7 +78,7 @@ export const useTaskStore = create<TaskStore>()(
             if (node.id === taskId) {
               const completed = !node.completed;
               console.log(
-                `Toggling task ${taskId}: ${node.completed} -> ${completed}`,
+                `Toggling task ${taskId}: ${node.completed} -> ${completed}`
               );
               return {
                 ...node,
@@ -97,19 +95,19 @@ export const useTaskStore = create<TaskStore>()(
 
       updateTaskPosition: (
         taskId: string,
-        position: { x: number; y: number },
+        position: { x: number; y: number }
       ) => {
         set((state) => ({
           nodes: state.nodes.map((node) =>
             node.id === taskId
               ? { ...node, position, updatedAt: new Date() }
-              : node,
+              : node
           ),
         }));
       },
 
       addChildTask: (
-        position: { x: number; y: number } = { x: 100, y: 100 },
+        position: { x: number; y: number } = { x: 100, y: 100 }
       ) => {
         const { currentTaskId } = get();
         const newTaskId = `task-${Date.now()}`;
@@ -168,8 +166,7 @@ export const useTaskStore = create<TaskStore>()(
           nodes: state.nodes.filter((node) => !tasksToRemove.has(node.id)),
           edges: state.edges.filter(
             (edge) =>
-              !tasksToRemove.has(edge.source) &&
-              !tasksToRemove.has(edge.target),
+              !tasksToRemove.has(edge.source) && !tasksToRemove.has(edge.target)
           ),
         }));
       },
@@ -180,34 +177,40 @@ export const useTaskStore = create<TaskStore>()(
 
       goToParent: () => {
         const { currentTaskId, nodes } = get();
-        if (currentTaskId) {
-          const currentTask = nodes.find((node) => node.id === currentTaskId);
-          if (currentTask) {
-            set({ currentTaskId: currentTask.parentId });
-          }
+        if (!currentTaskId) return;
+
+        const currentTask = nodes.find((node) => node.id === currentTaskId);
+        if (!currentTask) return;
+
+        if (currentTask.parentId === null) {
+          set({ currentTaskId: null });
+          get().removeTask(currentTaskId);
+          return;
         }
+
+        set({ currentTaskId: currentTask.parentId });
       },
 
       goToNextTask: () => {
         const { nodes, edges, currentTaskId } = get();
 
         const currentViewNodes = nodes.filter(
-          (node) => node.parentId === currentTaskId,
+          (node) => node.parentId === currentTaskId
         );
 
         const incompleteTasks = currentViewNodes.filter(
-          (node) => !node.completed,
+          (node) => !node.completed
         );
 
         if (incompleteTasks.length === 0) return;
 
         const currentViewEdges = edges.filter(
-          (edge) => edge.parentId === currentTaskId,
+          (edge) => edge.parentId === currentTaskId
         );
 
         for (const task of incompleteTasks) {
           const dependencies = currentViewEdges.filter(
-            (edge) => edge.target === task.id,
+            (edge) => edge.target === task.id
           );
 
           const allDependenciesCompleted = dependencies.every((dep) => {
@@ -229,7 +232,7 @@ export const useTaskStore = create<TaskStore>()(
 
         const sortByDependencies = (
           childNodes: TaskNode[],
-          parentId: string | null,
+          parentId: string | null
         ): TaskNode[] => {
           const childEdges = edges.filter((edge) => edge.parentId === parentId);
           const sorted: TaskNode[] = [];
@@ -259,7 +262,7 @@ export const useTaskStore = create<TaskStore>()(
 
         const generateTaskMarkdown = (
           task: TaskNode,
-          level: number,
+          level: number
         ): string => {
           const lines: string[] = [];
           const heading = "#".repeat(level);
@@ -310,6 +313,6 @@ export const useTaskStore = create<TaskStore>()(
     {
       name: "task-storage",
       storage: createJSONStorage(() => indexedDBStorage),
-    },
-  ),
+    }
+  )
 );
