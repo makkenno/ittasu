@@ -82,12 +82,7 @@ export function TaskDetailPage() {
   };
 
   const handleMemoChange = (newMemo: string) => {
-    console.log(
-      "handleMemoChange called:",
-      newMemo,
-      "currentTaskId:",
-      currentTaskId,
-    );
+
     if (currentTaskId) {
       updateTaskMemo(currentTaskId, newMemo);
     }

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { getDescendantIds } from "../lib/graph-utils";
 import { indexedDBStorage } from "../lib/indexeddb-storage";
+import { generateMarkdown } from "../lib/markdown-utils";
 import {
   sampleChildEdges,
   sampleChildNodes,
@@ -77,9 +79,6 @@ export const useTaskStore = create<TaskStore>()(
           const newNodes = state.nodes.map((node) => {
             if (node.id === taskId) {
               const completed = !node.completed;
-              console.log(
-                `Toggling task ${taskId}: ${node.completed} -> ${completed}`
-              );
               return {
                 ...node,
                 completed,
@@ -152,15 +151,7 @@ export const useTaskStore = create<TaskStore>()(
       removeTask: (taskId: string) => {
         const { nodes } = get();
 
-        const tasksToRemove = new Set<string>();
-        const collectDescendants = (id: string) => {
-          tasksToRemove.add(id);
-          const children = nodes.filter((node) => node.parentId === id);
-          for (const child of children) {
-            collectDescendants(child.id);
-          }
-        };
-        collectDescendants(taskId);
+        const tasksToRemove = getDescendantIds(nodes, taskId);
 
         set((state) => ({
           nodes: state.nodes.filter((node) => !tasksToRemove.has(node.id)),
@@ -228,81 +219,7 @@ export const useTaskStore = create<TaskStore>()(
 
       generateMarkdown: (taskId: string | null) => {
         const { nodes, edges } = get();
-
-        const sortByDependencies = (
-          childNodes: TaskNode[],
-          parentId: string | null
-        ): TaskNode[] => {
-          const childEdges = edges.filter((edge) => edge.parentId === parentId);
-          const sorted: TaskNode[] = [];
-          const visited = new Set<string>();
-
-          const visit = (nodeId: string) => {
-            if (visited.has(nodeId)) return;
-            visited.add(nodeId);
-
-            const deps = childEdges.filter((edge) => edge.target === nodeId);
-            for (const dep of deps) {
-              visit(dep.source);
-            }
-
-            const node = childNodes.find((n) => n.id === nodeId);
-            if (node) {
-              sorted.push(node);
-            }
-          };
-
-          for (const node of childNodes) {
-            visit(node.id);
-          }
-
-          return sorted;
-        };
-
-        const generateTaskMarkdown = (
-          task: TaskNode,
-          level: number
-        ): string => {
-          const lines: string[] = [];
-          const heading = "#".repeat(level);
-          lines.push(`${heading} ${task.title}`);
-          lines.push("");
-
-          if (task.memo) {
-            lines.push(task.memo);
-            lines.push("");
-          }
-
-          const children = nodes.filter((node) => node.parentId === task.id);
-          const sortedChildren = sortByDependencies(children, task.id);
-
-          for (const child of sortedChildren) {
-            lines.push(generateTaskMarkdown(child, level + 1));
-          }
-
-          return lines.join("\n");
-        };
-
-        const generateRootMarkdown = (): string => {
-          const rootNodes = nodes.filter((node) => node.parentId === null);
-          const sortedRootNodes = sortByDependencies(rootNodes, null);
-          const lines: string[] = [];
-
-          for (const rootNode of sortedRootNodes) {
-            lines.push(generateTaskMarkdown(rootNode, 1));
-          }
-
-          return lines.join("\n");
-        };
-
-        if (taskId === null) {
-          return generateRootMarkdown();
-        }
-
-        const task = nodes.find((node) => node.id === taskId);
-        if (!task) return "";
-
-        return generateTaskMarkdown(task, 1);
+        return generateMarkdown(nodes, edges, taskId);
       },
 
       selectTask: (taskId: string) => {
