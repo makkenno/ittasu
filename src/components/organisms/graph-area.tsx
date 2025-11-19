@@ -279,7 +279,7 @@ export function GraphArea({
       <button
         type="button"
         onClick={() => onAddTask?.()}
-        className="absolute bottom-8 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+        className="absolute bottom-12 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
         title="新しいタスクを追加"
       >
         <Plus className="w-5 h-5" />
