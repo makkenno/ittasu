@@ -1,0 +1,6 @@
+ls:
+  src:
+    .dir: kebab-case
+    .ts: kebab-case
+    .test.ts: kebab-case
+    .tsx: kebab-case
