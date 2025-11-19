@@ -181,7 +181,7 @@ export const useTaskStore = create<TaskStore>()(
 
         const currentTask = nodes.find((node) => node.id === currentTaskId);
 
-        if (!currentTask || currentTask.parentId === null) {
+        if (!currentTask) {
           set({ currentTaskId: null });
           get().removeTask(currentTaskId);
           return;
