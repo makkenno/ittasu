@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   applyNodeChanges,
@@ -13,6 +13,7 @@ import ReactFlow, {
   type OnNodesChange,
   Panel,
   type ReactFlowInstance,
+  SelectionMode,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { TaskEdge } from "../../types/edge";
@@ -51,6 +52,13 @@ export function GraphArea({
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const lastClickTimeRef = useRef<number>(0);
+  const DOUBLE_CLICK_DELAY = 300; // ミリ秒
+
+  // 選択されたノードのID
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
@@ -63,7 +71,7 @@ export function GraphArea({
           onToggleComplete,
         },
       })),
-    [taskNodes, onToggleComplete],
+    [taskNodes, onToggleComplete]
   );
 
   const reactFlowEdges: Edge[] = useMemo(
@@ -82,7 +90,7 @@ export function GraphArea({
           strokeWidth: 2,
         },
       })),
-    [taskEdges],
+    [taskEdges]
   );
 
   const handleNodesChange: OnNodesChange = useCallback(
@@ -105,7 +113,7 @@ export function GraphArea({
 
       onTaskNodesChange?.(newTaskNodes);
     },
-    [reactFlowNodes, taskNodes, onTaskNodesChange, onRemoveTask],
+    [reactFlowNodes, taskNodes, onTaskNodesChange, onRemoveTask]
   );
 
   const handleEdgesChange: OnEdgesChange = useCallback(
@@ -116,7 +124,7 @@ export function GraphArea({
         }
       }
     },
-    [onRemoveEdge],
+    [onRemoveEdge]
   );
 
   const handleConnect: OnConnect = useCallback(
@@ -125,35 +133,51 @@ export function GraphArea({
         onAddEdge?.(connection.source, connection.target);
       }
     },
-    [onAddEdge],
+    [onAddEdge]
   );
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       onNodeClick?.(node.id);
     },
-    [onNodeClick],
+    [onNodeClick]
   );
 
   const handleNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       onNodeDoubleClick?.(node.id);
     },
-    [onNodeDoubleClick],
+    [onNodeDoubleClick]
   );
+
+  const handleSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
+    setSelectedNodeIds(new Set(nodes.map((n) => n.id)));
+  }, []);
 
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
       if (!rfInstance) return;
 
-      const position = rfInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+      // 範囲選択中はタスク作成をスキップ
+      if (event.shiftKey) return;
 
-      onAddTask?.(position);
+      const currentTime = Date.now();
+      const timeSinceLastClick = currentTime - lastClickTimeRef.current;
+
+      if (timeSinceLastClick < DOUBLE_CLICK_DELAY) {
+        // ダブルクリック検出
+        const position = rfInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        onAddTask?.(position);
+        lastClickTimeRef.current = 0;
+      } else {
+        lastClickTimeRef.current = currentTime;
+      }
     },
-    [rfInstance, onAddTask],
+    [rfInstance, onAddTask]
   );
 
   useEffect(() => {
@@ -162,6 +186,33 @@ export function GraphArea({
       titleInputRef.current.select();
     }
   }, [selectedTask?.id]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        selectedNodeIds.size > 0
+      ) {
+        const activeElement = document.activeElement;
+        if (
+          activeElement?.tagName === "INPUT" ||
+          activeElement?.tagName === "TEXTAREA"
+        ) {
+          return;
+        }
+
+        for (const nodeId of selectedNodeIds) {
+          onRemoveTask?.(nodeId);
+        }
+        setSelectedNodeIds(new Set());
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedNodeIds, onRemoveTask]);
 
   return (
     <div className="w-full h-full bg-gray-50 relative">
@@ -174,8 +225,15 @@ export function GraphArea({
         onNodeClick={handleNodeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={onPaneClick}
+        onSelectionChange={handleSelectionChange}
         onInit={setRfInstance}
         nodeTypes={nodeTypes}
+        selectionOnDrag
+        panOnDrag={true}
+        selectionKeyCode="Shift"
+        multiSelectionKeyCode="Shift"
+        selectionMode={SelectionMode.Partial}
+        zoomOnDoubleClick={false}
         fitView
       >
         <Background />
@@ -204,6 +262,15 @@ export function GraphArea({
                   className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => onRemoveTask?.(selectedTask.id)}
+                className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                title="このタスクを削除"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="text-sm font-medium">削除</span>
+              </button>
             </div>
           </Panel>
         )}
@@ -212,7 +279,7 @@ export function GraphArea({
       <button
         type="button"
         onClick={() => onAddTask?.()}
-        className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+        className="absolute bottom-8 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
         title="新しいタスクを追加"
       >
         <Plus className="w-5 h-5" />
