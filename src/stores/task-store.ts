@@ -115,7 +115,7 @@ export const useTaskStore = create<TaskStore>()(
         const newTaskId = `task-${Date.now()}`;
         const newTask: TaskNode = {
           id: newTaskId,
-          title: generateTaskName(),
+          title: "",
           memo: "",
           completed: false,
           parentId: currentTaskId,
@@ -126,6 +126,7 @@ export const useTaskStore = create<TaskStore>()(
         };
 
         set((state) => ({
+          selectedTaskId: newTaskId,
           nodes: [...state.nodes, newTask],
         }));
       },
@@ -312,35 +313,3 @@ export const useTaskStore = create<TaskStore>()(
     },
   ),
 );
-
-const adjectives = [
-  "すごい",
-  "秘密の",
-  "急ぎの",
-  "静かな",
-  "未完成の",
-  "伝説の",
-  "賢い",
-  "明るい",
-  "謎の",
-  "最後の",
-];
-
-const nouns = [
-  "アイデア",
-  "作戦",
-  "冒険",
-  "タスク",
-  "計画",
-  "ミッション",
-  "プロジェクト",
-  "メモ",
-  "思考",
-  "旅",
-];
-
-const generateTaskName = () => {
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return `${adj}${noun}`; // 例: "秘密の作戦", "すごいアイデア"
-};

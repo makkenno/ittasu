@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   applyNodeChanges,
   Background,
@@ -50,6 +50,7 @@ export function GraphArea({
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
@@ -155,6 +156,13 @@ export function GraphArea({
     [rfInstance, onAddTask],
   );
 
+  useEffect(() => {
+    if (selectedTask?.id && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [selectedTask?.id]);
+
   return (
     <div className="w-full h-full bg-gray-50 relative">
       <ReactFlow
@@ -188,6 +196,7 @@ export function GraphArea({
                 <input
                   id="title"
                   type="text"
+                  ref={titleInputRef}
                   value={selectedTask.title}
                   onChange={(e) =>
                     onTitleChange?.(selectedTask.id, e.target.value)
