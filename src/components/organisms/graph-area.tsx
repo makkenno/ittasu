@@ -160,7 +160,7 @@ export function GraphArea({
       const viewport = rfInstance.getViewport();
       const { x: viewX, y: viewY, zoom } = viewport;
 
-      const centerX = -viewX / zoom + 900 / zoom;
+      const centerX = -viewX / zoom + 500 / zoom;
       const centerY = -viewY / zoom + 250 / zoom;
 
       onAddTask?.({ x: centerX, y: centerY });
