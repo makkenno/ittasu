@@ -4,7 +4,7 @@ import type { TaskNode } from "../types/task";
 const sortByDependencies = (
   childNodes: TaskNode[],
   edges: TaskEdge[],
-  parentId: string | null
+  parentId: string | null,
 ): TaskNode[] => {
   const childEdges = edges.filter((edge) => edge.parentId === parentId);
   const sorted: TaskNode[] = [];
@@ -36,7 +36,7 @@ const generateTaskMarkdown = (
   task: TaskNode,
   nodes: TaskNode[],
   edges: TaskEdge[],
-  level: number
+  level: number,
 ): string => {
   const lines: string[] = [];
   const heading = "#".repeat(level);
@@ -61,7 +61,7 @@ const generateTaskMarkdown = (
 export const generateMarkdown = (
   nodes: TaskNode[],
   edges: TaskEdge[],
-  taskId: string | null
+  taskId: string | null,
 ): string => {
   if (taskId === null) {
     const rootNodes = nodes.filter((node) => node.parentId === null);

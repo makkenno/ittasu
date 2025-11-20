@@ -39,8 +39,6 @@ export function TaskDetailPage() {
 
   const selectedTask = nodes.find((n) => n.id === selectedTaskId) ?? null;
 
-  const hasNextTask = currentNodes.some((node) => !node.completed);
-
   const handleTitleChange = (newTitle: string) => {
     if (currentTaskId) {
       updateTaskTitle(currentTaskId, newTitle);
@@ -82,7 +80,6 @@ export function TaskDetailPage() {
   };
 
   const handleMemoChange = (newMemo: string) => {
-
     if (currentTaskId) {
       updateTaskMemo(currentTaskId, newMemo);
     }
@@ -131,7 +128,6 @@ export function TaskDetailPage() {
           title={title}
           completed={completed}
           hasParent={hasParent}
-          hasNextTask={hasNextTask}
           onTitleChange={handleTitleChange}
           onToggleComplete={handleToggleComplete}
           onBackClick={handleBackClick}

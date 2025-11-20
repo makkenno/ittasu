@@ -11,6 +11,7 @@ import {
 } from "../lib/sample-data";
 import type { TaskEdge } from "../types/edge";
 import type { TaskNode } from "../types/task";
+import { findNextTask } from "./logic";
 
 interface TaskStore {
   nodes: TaskNode[];
@@ -26,7 +27,7 @@ interface TaskStore {
 
   updateTaskPosition: (
     taskId: string,
-    position: { x: number; y: number }
+    position: { x: number; y: number },
   ) => void;
 
   addChildTask: (position?: { x: number; y: number }) => void;
@@ -61,7 +62,7 @@ export const useTaskStore = create<TaskStore>()(
           nodes: state.nodes.map((node) =>
             node.id === taskId
               ? { ...node, title, updatedAt: new Date() }
-              : node
+              : node,
           ),
         }));
       },
@@ -69,7 +70,9 @@ export const useTaskStore = create<TaskStore>()(
       updateTaskMemo: (taskId: string, memo: string) => {
         set((state) => ({
           nodes: state.nodes.map((node) =>
-            node.id === taskId ? { ...node, memo, updatedAt: new Date() } : node
+            node.id === taskId
+              ? { ...node, memo, updatedAt: new Date() }
+              : node,
           ),
         }));
       },
@@ -94,19 +97,19 @@ export const useTaskStore = create<TaskStore>()(
 
       updateTaskPosition: (
         taskId: string,
-        position: { x: number; y: number }
+        position: { x: number; y: number },
       ) => {
         set((state) => ({
           nodes: state.nodes.map((node) =>
             node.id === taskId
               ? { ...node, position, updatedAt: new Date() }
-              : node
+              : node,
           ),
         }));
       },
 
       addChildTask: (
-        position: { x: number; y: number } = { x: 100, y: 100 }
+        position: { x: number; y: number } = { x: 100, y: 100 },
       ) => {
         const { currentTaskId } = get();
         const newTaskId = `task-${Date.now()}`;
@@ -157,7 +160,8 @@ export const useTaskStore = create<TaskStore>()(
           nodes: state.nodes.filter((node) => !tasksToRemove.has(node.id)),
           edges: state.edges.filter(
             (edge) =>
-              !tasksToRemove.has(edge.source) && !tasksToRemove.has(edge.target)
+              !tasksToRemove.has(edge.source) &&
+              !tasksToRemove.has(edge.target),
           ),
         }));
       },
@@ -182,39 +186,12 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       goToNextTask: () => {
-        const { nodes, edges, currentTaskId } = get();
+        const { nodes, edges } = get();
+        const nextTaskId = findNextTask(nodes, edges);
 
-        const currentViewNodes = nodes.filter(
-          (node) => node.parentId === currentTaskId
-        );
-
-        const incompleteTasks = currentViewNodes.filter(
-          (node) => !node.completed
-        );
-
-        if (incompleteTasks.length === 0) return;
-
-        const currentViewEdges = edges.filter(
-          (edge) => edge.parentId === currentTaskId
-        );
-
-        for (const task of incompleteTasks) {
-          const dependencies = currentViewEdges.filter(
-            (edge) => edge.target === task.id
-          );
-
-          const allDependenciesCompleted = dependencies.every((dep) => {
-            const sourceTask = nodes.find((node) => node.id === dep.source);
-            return sourceTask?.completed;
-          });
-
-          if (dependencies.length === 0 || allDependenciesCompleted) {
-            set({ currentTaskId: task.id });
-            return;
-          }
+        if (nextTaskId) {
+          set({ currentTaskId: nextTaskId });
         }
-
-        set({ currentTaskId: incompleteTasks[0]?.id });
       },
 
       generateMarkdown: (taskId: string | null) => {
@@ -229,6 +206,6 @@ export const useTaskStore = create<TaskStore>()(
     {
       name: "task-storage",
       storage: createJSONStorage(() => indexedDBStorage),
-    }
-  )
+    },
+  ),
 );

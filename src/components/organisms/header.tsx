@@ -8,7 +8,6 @@ interface HeaderProps {
   title: string;
   completed: boolean;
   hasParent: boolean;
-  hasNextTask: boolean;
   onTitleChange?: (newTitle: string) => void;
   onToggleComplete?: () => void;
   onBackClick?: () => void;
@@ -20,7 +19,6 @@ export function Header({
   title,
   completed,
   hasParent,
-  hasNextTask,
   onTitleChange,
   onToggleComplete,
   onBackClick,
@@ -40,7 +38,7 @@ export function Header({
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
         <CopyMarkdownButton onClick={onCopyMarkdown} />
         <CompleteToggle completed={completed} onToggle={onToggleComplete} />
-        <NextTaskButton onClick={onNextTaskClick} disabled={!hasNextTask} />
+        <NextTaskButton onClick={onNextTaskClick} />
       </div>
     </header>
   );

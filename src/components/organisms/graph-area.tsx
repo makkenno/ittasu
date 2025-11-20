@@ -57,7 +57,7 @@ export function GraphArea({
 
   // 選択されたノードのID
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
@@ -71,7 +71,7 @@ export function GraphArea({
           onToggleComplete,
         },
       })),
-    [taskNodes, onToggleComplete]
+    [taskNodes, onToggleComplete],
   );
 
   const reactFlowEdges: Edge[] = useMemo(
@@ -90,7 +90,7 @@ export function GraphArea({
           strokeWidth: 2,
         },
       })),
-    [taskEdges]
+    [taskEdges],
   );
 
   const handleNodesChange: OnNodesChange = useCallback(
@@ -113,7 +113,7 @@ export function GraphArea({
 
       onTaskNodesChange?.(newTaskNodes);
     },
-    [reactFlowNodes, taskNodes, onTaskNodesChange, onRemoveTask]
+    [reactFlowNodes, taskNodes, onTaskNodesChange, onRemoveTask],
   );
 
   const handleEdgesChange: OnEdgesChange = useCallback(
@@ -124,7 +124,7 @@ export function GraphArea({
         }
       }
     },
-    [onRemoveEdge]
+    [onRemoveEdge],
   );
 
   const handleConnect: OnConnect = useCallback(
@@ -133,21 +133,21 @@ export function GraphArea({
         onAddEdge?.(connection.source, connection.target);
       }
     },
-    [onAddEdge]
+    [onAddEdge],
   );
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       onNodeClick?.(node.id);
     },
-    [onNodeClick]
+    [onNodeClick],
   );
 
   const handleNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       onNodeDoubleClick?.(node.id);
     },
-    [onNodeDoubleClick]
+    [onNodeDoubleClick],
   );
 
   const handleSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
@@ -192,7 +192,7 @@ export function GraphArea({
         lastClickTimeRef.current = currentTime;
       }
     },
-    [rfInstance, onAddTask]
+    [rfInstance, onAddTask],
   );
 
   useEffect(() => {
