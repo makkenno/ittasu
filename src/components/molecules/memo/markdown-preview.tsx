@@ -73,6 +73,7 @@ export function MarkdownPreview({ value }: MarkdownPreviewProps) {
               style={{
                 paddingInlineStart: "24px",
                 marginBottom: "16px",
+                listStyleType: "disc",
               }}
             >
               {children}
@@ -83,6 +84,7 @@ export function MarkdownPreview({ value }: MarkdownPreviewProps) {
               style={{
                 paddingInlineStart: "24px",
                 marginBottom: "16px",
+                listStyleType: "decimal",
               }}
             >
               {children}
