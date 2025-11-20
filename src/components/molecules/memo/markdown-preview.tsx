@@ -12,169 +12,73 @@ interface MarkdownPreviewProps {
 
 export function MarkdownPreview({ value }: MarkdownPreviewProps) {
   return (
-    <div className="w-full h-full p-6 overflow-y-auto bg-white">
+    <div className="w-full h-full p-6 overflow-y-auto bg-background text-foreground">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeHighlight]}
         components={{
           h1: ({ children }) => (
-            <h1
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                marginBottom: "16px",
-              }}
-            >
+            <h1 className="text-2xl font-bold mb-4 text-foreground">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2
-              style={{
-                borderBottom: "1px solid #c9c9c9",
-                fontSize: "22px",
-                fontWeight: "bold",
-                marginTop: "56px",
-                marginBottom: "16px",
-              }}
-            >
+            <h2 className="text-xl font-bold mt-8 mb-4 border-b border-border pb-2 text-foreground">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3
-              style={{
-                fontSize: "20px",
-                fontWeight: "bold",
-                marginTop: "32px",
-                marginBottom: "16px",
-              }}
-            >
+            <h3 className="text-lg font-bold mt-6 mb-3 text-foreground">
               {children}
             </h3>
           ),
           h4: ({ children }) => (
-            <h4
-              style={{
-                fontSize: "18px",
-                fontWeight: "bold",
-                marginTop: "24px",
-                marginBottom: "16px",
-              }}
-            >
+            <h4 className="text-base font-bold mt-6 mb-3 text-foreground">
               {children}
             </h4>
           ),
           p: ({ children }) => (
-            <p style={{ marginBottom: "16px", fontSize: "16px" }}>{children}</p>
+            <p className="mb-4 leading-7 text-foreground text-base">
+              {children}
+            </p>
           ),
           ul: ({ children }) => (
-            <ul
-              style={{
-                paddingInlineStart: "24px",
-                marginBottom: "16px",
-                listStyleType: "disc",
-              }}
-            >
-              {children}
-            </ul>
+            <ul className="list-disc pl-6 mb-4 text-foreground">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol
-              style={{
-                paddingInlineStart: "24px",
-                marginBottom: "16px",
-                listStyleType: "decimal",
-              }}
-            >
+            <ol className="list-decimal pl-6 mb-4 text-foreground">
               {children}
             </ol>
           ),
-          li: ({ children }) => (
-            <li
-              style={{
-                fontSize: "16px",
-              }}
-            >
-              {children}
-            </li>
-          ),
+          li: ({ children }) => <li className="mb-1 text-base">{children}</li>,
           table: ({ children }) => (
-            <div
-              style={{
-                overflowX: "auto",
-                marginBottom: "24px",
-                borderRadius: "8px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: "14px",
-                }}
-              >
+            <div className="w-full overflow-x-auto mb-6 rounded-lg border border-border shadow-sm">
+              <table className="w-full border-collapse text-sm">
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead
-              style={{
-                backgroundColor: "#f8fafc",
-                borderBottom: "2px solid #cbd5e1",
-              }}
-            >
+            <thead className="bg-muted border-b border-border">
               {children}
             </thead>
           ),
           tbody: ({ children }) => <tbody>{children}</tbody>,
           tr: ({ children }) => (
-            <tr
-              style={{
-                borderBottom: "1px solid #e2e8f0",
-              }}
-            >
+            <tr className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
               {children}
             </tr>
           ),
           th: ({ children }) => (
-            <th
-              style={{
-                padding: "12px 16px",
-                textAlign: "left",
-                fontWeight: "600",
-                color: "#475569",
-                fontSize: "14px",
-              }}
-            >
+            <th className="p-3 text-left font-semibold text-muted-foreground align-middle">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td
-              style={{
-                padding: "12px 16px",
-                color: "#334155",
-                fontSize: "14px",
-              }}
-            >
-              {children}
-            </td>
+            <td className="p-3 align-middle text-foreground">{children}</td>
           ),
           blockquote: ({ children }) => (
-            <blockquote
-              style={{
-                borderLeft: "4px solid #3b82f6",
-                backgroundColor: "#eff6ff",
-                padding: "8px 16px",
-                marginBottom: "16px",
-                fontStyle: "italic",
-                color: "#1e40af",
-              }}
-            >
+            <blockquote className="border-l-4 border-primary bg-muted/30 pl-4 py-2 mb-4 italic text-muted-foreground rounded-r-lg">
               {children}
             </blockquote>
           ),
@@ -185,11 +89,7 @@ export function MarkdownPreview({ value }: MarkdownPreviewProps) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                color: "#2563eb",
-                textDecoration: "underline",
-                cursor: "pointer",
-              }}
+              className="text-primary underline hover:text-primary/80 transition-colors cursor-pointer font-medium"
             >
               {children}
             </a>

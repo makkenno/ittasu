@@ -11,16 +11,7 @@ export const Code: FC<CodeProps> = ({ children, className }) => {
   }
 
   return (
-    <code
-      style={{
-        backgroundColor: "#fce7f3",
-        color: "#db2777",
-        padding: "2px 6px",
-        borderRadius: "4px",
-        fontSize: "14px",
-        fontFamily: "monospace",
-      }}
-    >
+    <code className="bg-muted text-foreground px-1.5 py-0.5 rounded font-mono text-sm">
       {children}
     </code>
   );
