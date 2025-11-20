@@ -178,6 +178,20 @@ export function MarkdownPreview({ value }: MarkdownPreviewProps) {
           ),
           pre: Pre,
           code: Code,
+          a: ({ children, href }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#2563eb",
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              {children}
+            </a>
+          ),
         }}
       >
         {value}
