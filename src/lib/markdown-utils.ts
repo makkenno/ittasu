@@ -44,7 +44,12 @@ const generateTaskMarkdown = (
   lines.push("");
 
   if (task.memo) {
-    lines.push(task.memo);
+    const headerPrefix = "#".repeat(level);
+    const processedMemo = task.memo
+      .replace(/^(#+)/g, `${headerPrefix}$1`)
+      .replace(/\n(#+)/g, `\n${headerPrefix}$1`);
+
+    lines.push(processedMemo);
     lines.push("");
   }
 
