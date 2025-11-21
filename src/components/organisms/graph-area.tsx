@@ -33,6 +33,7 @@ interface GraphAreaProps {
   onAddEdge?: (source: string, target: string) => void;
   onRemoveEdge?: (edgeId: string) => void;
   onRemoveTask?: (taskId: string) => void;
+  onPaneClick?: () => void;
 }
 
 export function GraphArea({
@@ -48,6 +49,7 @@ export function GraphArea({
   onAddEdge,
   onRemoveEdge,
   onRemoveTask,
+  onPaneClick: onPaneClickProp,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
@@ -193,9 +195,11 @@ export function GraphArea({
         lastClickTimeRef.current = 0;
       } else {
         lastClickTimeRef.current = currentTime;
+        // シングルクリック時にパネルを閉じるなどの処理
+        onPaneClickProp?.();
       }
     },
-    [rfInstance, onAddTask],
+    [rfInstance, onAddTask, onPaneClickProp],
   );
 
   useEffect(() => {

@@ -121,6 +121,10 @@ export function TaskDetailPage() {
     }
   };
 
+  const handlePaneClick = () => {
+    selectTask(null);
+  };
+
   return (
     <div className="flex flex-col h-[100dvh]">
       {!isRoot && (
@@ -151,6 +155,7 @@ export function TaskDetailPage() {
             onAddEdge={addEdge}
             onRemoveEdge={removeEdge}
             onRemoveTask={removeTask}
+            onPaneClick={handlePaneClick}
           />
         </div>
       ) : (
@@ -170,6 +175,7 @@ export function TaskDetailPage() {
                 onAddEdge={addEdge}
                 onRemoveEdge={removeEdge}
                 onRemoveTask={removeTask}
+                onPaneClick={handlePaneClick}
               />
             </Panel>
             <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">

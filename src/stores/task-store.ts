@@ -46,7 +46,7 @@ interface TaskStore {
 
   generateMarkdown: (taskId: string | null) => string;
 
-  selectTask: (taskId: string) => void;
+  selectTask: (taskId: string | null) => void;
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -199,7 +199,7 @@ export const useTaskStore = create<TaskStore>()(
         return generateMarkdown(nodes, edges, taskId);
       },
 
-      selectTask: (taskId: string) => {
+      selectTask: (taskId: string | null) => {
         set({ selectedTaskId: taskId });
       },
     }),
