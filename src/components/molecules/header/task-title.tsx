@@ -49,18 +49,18 @@ export function TaskTitle({ title, onChange }: TaskTitleProps) {
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className="text-xl font-bold px-2 py-1 border-2 border-blue-500 rounded focus:outline-none"
+        className="text-xl font-bold px-2 py-1 border-2 border-blue-500 rounded focus:outline-none w-full"
         aria-label="タスクタイトルを編集"
       />
     );
   }
 
   return (
-    <h1 className="text-xl font-bold">
+    <h1 className="text-xl font-bold flex min-w-0">
       <button
         type="button"
         onClick={handleClick}
-        className="px-2 py-1 cursor-pointer hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="px-2 py-1 cursor-pointer hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 truncate min-w-0"
         aria-label="タスクタイトルを編集"
       >
         {title}
