@@ -252,7 +252,7 @@ export function GraphArea({
         fitView
       >
         <Background />
-        <Controls />
+        <Controls className="mb-20 sm:mb-0" />
         {selectedTask && (
           <Panel
             position="top-right"
@@ -294,7 +294,7 @@ export function GraphArea({
       <button
         type="button"
         onClick={handleAddTaskAtViewCenter}
-        className="absolute bottom-20 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+        className="absolute bottom-12 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
         title="新しいタスクを追加"
       >
         <Plus className="w-5 h-5" />

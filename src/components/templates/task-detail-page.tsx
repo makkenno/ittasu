@@ -122,7 +122,7 @@ export function TaskDetailPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-[100dvh]">
       {!isRoot && (
         <Header
           title={title}
