@@ -24,8 +24,10 @@ export function TaskNode({ data }: NodeProps<TaskNodeData>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-6 !h-6 md:!w-3 md:!h-3 border-2 border-white bg-gray-400"
-      />
+        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center"
+      >
+        <div className="w-3 h-3 bg-gray-400 rounded-full border-2 border-white pointer-events-none" />
+      </Handle>
 
       <div className="font-medium text-sm mb-2 break-words cursor-default">
         {task.title}
@@ -53,8 +55,10 @@ export function TaskNode({ data }: NodeProps<TaskNodeData>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-6 !h-6 md:!w-3 md:!h-3 border-2 border-white bg-gray-400"
-      />
+        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center"
+      >
+        <div className="w-3 h-3 bg-gray-400 rounded-full border-2 border-white pointer-events-none" />
+      </Handle>
     </div>
   );
 }
