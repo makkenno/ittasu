@@ -165,7 +165,7 @@ export function GraphArea({
 
       const position = rfInstance.screenToFlowPosition({
         x: left + width / 2,
-        y: top + height / 2,
+        y: top + height / 3,
       });
 
       onAddTask?.(position);
