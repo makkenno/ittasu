@@ -15,7 +15,7 @@ export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
     <textarea
       value={value}
       onChange={handleChange}
-      className="w-full h-full p-4 font-mono text-sm border-0 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="w-full h-full p-4 font-mono text-base sm:text-sm border-0 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
       placeholder="Markdown形式でメモを入力..."
     />
   );
