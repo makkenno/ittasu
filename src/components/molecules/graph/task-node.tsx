@@ -24,7 +24,7 @@ export function TaskNode({ data }: NodeProps<TaskNodeData>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center"
+        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center -ml-1.5 md:ml-0"
       >
         <div className="w-3 h-3 bg-gray-400 rounded-full border-2 border-white pointer-events-none" />
       </Handle>
@@ -55,7 +55,7 @@ export function TaskNode({ data }: NodeProps<TaskNodeData>) {
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center"
+        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center -mr-1.5 md:mr-0"
       >
         <div className="w-3 h-3 bg-gray-400 rounded-full border-2 border-white pointer-events-none" />
       </Handle>
