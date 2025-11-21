@@ -167,7 +167,7 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       setCurrentTaskId: (taskId: string | null) => {
-        set({ currentTaskId: taskId });
+        set({ currentTaskId: taskId, selectedTaskId: null });
       },
 
       goToParent: () => {
@@ -177,12 +177,12 @@ export const useTaskStore = create<TaskStore>()(
         const currentTask = nodes.find((node) => node.id === currentTaskId);
 
         if (!currentTask) {
-          set({ currentTaskId: null });
+          set({ currentTaskId: null, selectedTaskId: null });
           get().removeTask(currentTaskId);
           return;
         }
 
-        set({ currentTaskId: currentTask.parentId });
+        set({ currentTaskId: currentTask.parentId, selectedTaskId: null });
       },
 
       goToNextTask: () => {
@@ -190,7 +190,7 @@ export const useTaskStore = create<TaskStore>()(
         const nextTaskId = findNextTask(nodes, edges);
 
         if (nextTaskId) {
-          set({ currentTaskId: nextTaskId });
+          set({ currentTaskId: nextTaskId, selectedTaskId: null });
         }
       },
 
