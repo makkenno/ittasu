@@ -154,16 +154,19 @@ export function GraphArea({
     setSelectedNodeIds(new Set(nodes.map((n) => n.id)));
   }, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const handleAddTaskAtViewCenter = useCallback(() => {
-    if (rfInstance) {
-      // 現在のビューポートの中心を取得
-      const viewport = rfInstance.getViewport();
-      const { x: viewX, y: viewY, zoom } = viewport;
+    if (rfInstance && containerRef.current) {
+      const { top, left, width, height } =
+        containerRef.current.getBoundingClientRect();
 
-      const centerX = -viewX / zoom + 500 / zoom;
-      const centerY = -viewY / zoom + 250 / zoom;
+      const position = rfInstance.screenToFlowPosition({
+        x: left + width / 2,
+        y: top + height / 2,
+      });
 
-      onAddTask?.({ x: centerX, y: centerY });
+      onAddTask?.(position);
     } else {
       onAddTask?.();
     }
@@ -230,7 +233,7 @@ export function GraphArea({
   }, [selectedNodeIds, onRemoveTask]);
 
   return (
-    <div className="w-full h-full bg-gray-50 relative">
+    <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
       <ReactFlow
         nodes={reactFlowNodes}
         edges={reactFlowEdges}
