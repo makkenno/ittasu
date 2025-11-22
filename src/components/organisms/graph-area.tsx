@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   applyNodeChanges,
@@ -284,17 +284,28 @@ export function GraphArea({
                   className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => onRemoveTask?.(selectedTask.id)}
-                className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-fit self-end sm:w-full sm:self-auto"
-                title="このタスクを削除"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="text-sm font-medium hidden sm:inline">
-                  削除
-                </span>
-              </button>
+              <div className="flex gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => onNodeDoubleClick?.(selectedTask.id)}
+                  className="flex-1 flex items-center justify-center gap-2 p-2 border border-blue-600 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  title="詳細を見る"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="text-sm font-medium">詳細へ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemoveTask?.(selectedTask.id)}
+                  className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-auto"
+                  title="このタスクを削除"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="text-sm font-medium hidden sm:inline">
+                    削除
+                  </span>
+                </button>
+              </div>
             </div>
           </Panel>
         )}
