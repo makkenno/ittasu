@@ -109,15 +109,24 @@ describe("findNextTask", () => {
   });
 
   it("should handle root dependency with children", () => {
-    // Root1 -> Root2
-    // Root1 has Child1
-    // Should go to Child1 (inside Root1)
     const nodes = [
       createNode("Root1", null, false, 0),
       createNode("Root2", null, false, 100),
       createNode("Child1", "Root1", false, 0),
     ];
     const edges = [createEdge("Root1", "Root2")];
+    expect(findNextTask(nodes, edges)).toBe("Child1");
+  });
+
+  it("should return incomplete predecessor even if successor is completed", () => {
+    const nodes = [
+      createNode("Root1", null, false, 0),
+      createNode("Child2", "Root1", true, 0),
+      createNode("Root2", null, false, 100),
+      createNode("Child3", "Root1", false, 0),
+      createNode("Child1", "Root1", false, 0),
+    ];
+    const edges = [createEdge("Root1", "Root2"), createEdge("Child1", "Child2"), createEdge("Child2", "Child3")];
     expect(findNextTask(nodes, edges)).toBe("Child1");
   });
 });
