@@ -287,11 +287,13 @@ export function GraphArea({
               <button
                 type="button"
                 onClick={() => onRemoveTask?.(selectedTask.id)}
-                className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-fit self-end sm:w-full sm:self-auto"
                 title="このタスクを削除"
               >
                 <Trash2 className="w-4 h-4" />
-                <span className="text-sm font-medium">削除</span>
+                <span className="text-sm font-medium hidden sm:inline">
+                  削除
+                </span>
               </button>
             </div>
           </Panel>
