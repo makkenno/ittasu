@@ -288,7 +288,7 @@ export function GraphArea({
                 <button
                   type="button"
                   onClick={() => onNodeDoubleClick?.(selectedTask.id)}
-                  className="flex-1 flex items-center justify-center gap-2 p-2 border border-blue-600 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 p-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                   title="詳細を見る"
                 >
                   <ChevronRight className="w-4 h-4" />
