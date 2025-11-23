@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { generateMarkdown } from "../../lib/markdown-utils";
 import { useTaskStore } from "../../stores/task-store";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
@@ -22,7 +23,6 @@ export function TaskDetailPage() {
   const addEdge = useTaskStore((state) => state.addEdge);
   const removeEdge = useTaskStore((state) => state.removeEdge);
   const removeTask = useTaskStore((state) => state.removeTask);
-  const generateMarkdown = useTaskStore((state) => state.generateMarkdown);
   const selectTask = useTaskStore((state) => state.selectTask);
 
   const [showPreview, setShowPreview] = useState(false);
@@ -129,7 +129,7 @@ export function TaskDetailPage() {
   };
 
   if (showPreview) {
-    const markdown = generateMarkdown(currentTaskId);
+    const markdown = generateMarkdown(nodes, edges, currentTaskId);
     return <PreviewPage markdown={markdown} onBack={handleBackFromPreview} />;
   }
 

@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getDescendantIds } from "../lib/graph-utils";
 import { indexedDBStorage } from "../lib/indexeddb-storage";
-import { generateMarkdown } from "../lib/markdown-utils";
 import {
   sampleChildEdges,
   sampleChildNodes,
@@ -43,8 +42,6 @@ interface TaskStore {
   goToParent: () => void;
 
   goToNextTask: () => void;
-
-  generateMarkdown: (taskId: string | null) => string;
 
   selectTask: (taskId: string | null) => void;
 }
@@ -192,11 +189,6 @@ export const useTaskStore = create<TaskStore>()(
         if (nextTaskId) {
           set({ currentTaskId: nextTaskId, selectedTaskId: null });
         }
-      },
-
-      generateMarkdown: (taskId: string | null) => {
-        const { nodes, edges } = get();
-        return generateMarkdown(nodes, edges, taskId);
       },
 
       selectTask: (taskId: string | null) => {
