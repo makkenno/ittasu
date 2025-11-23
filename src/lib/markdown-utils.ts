@@ -1,7 +1,7 @@
 import type { TaskEdge } from "../types/edge";
 import type { TaskNode } from "../types/task";
 
-const sortByDependencies = (
+export const sortByDependencies = (
   childNodes: TaskNode[],
   edges: TaskEdge[],
   parentId: string | null,

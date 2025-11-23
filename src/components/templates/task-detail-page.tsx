@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { generateMarkdown } from "../../lib/markdown-utils";
 import { useTaskStore } from "../../stores/task-store";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
@@ -129,8 +128,16 @@ export function TaskDetailPage() {
   };
 
   if (showPreview) {
-    const markdown = generateMarkdown(nodes, edges, currentTaskId);
-    return <PreviewPage markdown={markdown} onBack={handleBackFromPreview} />;
+    return (
+      <PreviewPage
+        nodes={nodes}
+        edges={edges}
+        currentTaskId={currentTaskId}
+        onBack={handleBackFromPreview}
+        onTitleChange={updateTaskTitle}
+        onMemoChange={updateTaskMemo}
+      />
+    );
   }
 
   return (
