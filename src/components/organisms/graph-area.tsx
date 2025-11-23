@@ -1,17 +1,12 @@
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import ReactFlow, {
-  applyNodeChanges,
   Background,
   Controls,
   type Edge,
   MarkerType,
   type Node,
   type NodeTypes,
-  type OnConnect,
-  type OnEdgesChange,
-  type OnNodesChange,
-  Panel,
   type ReactFlowInstance,
   SelectionMode,
 } from "reactflow";
@@ -19,6 +14,10 @@ import "reactflow/dist/style.css";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
+import { DeletableEdge } from "../molecules/graph/deletable-edge";
+import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
+import { useGraphHandlers } from "./graph/hooks/use-graph-handlers";
+import { useKeyboardShortcuts } from "./graph/hooks/use-keyboard-shortcuts";
 
 interface GraphAreaProps {
   nodes: TaskNodeType[];
@@ -53,14 +52,9 @@ export function GraphArea({
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
-
-  // 選択されたノードのID
-  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(
-    new Set(),
-  );
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
@@ -76,13 +70,39 @@ export function GraphArea({
     [taskNodes, onToggleComplete],
   );
 
+  const {
+    selectedNodeIds,
+    setSelectedNodeIds,
+    selectedEdgeIds,
+    handleNodesChange,
+    handleEdgesChange,
+    handleConnect,
+    handleSelectionChange,
+  } = useGraphHandlers({
+    taskNodes,
+    reactFlowNodes,
+    onTaskNodesChange,
+    onRemoveTask,
+    onRemoveEdge,
+    onAddEdge,
+  });
+
+  useKeyboardShortcuts({
+    selectedNodeIds,
+    onRemoveTask,
+    setSelectedNodeIds,
+  });
+
   const reactFlowEdges: Edge[] = useMemo(
     () =>
       taskEdges.map((edge) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: "bezier",
+        type: "deletableEdge",
+        data: {
+          onRemoveEdge,
+        },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 20,
@@ -91,52 +111,12 @@ export function GraphArea({
         style: {
           strokeWidth: 2,
         },
+        selected: selectedEdgeIds.has(edge.id),
       })),
-    [taskEdges],
+    [taskEdges, onRemoveEdge, selectedEdgeIds],
   );
 
-  const handleNodesChange: OnNodesChange = useCallback(
-    (changes) => {
-      for (const change of changes) {
-        if (change.type === "remove") {
-          onRemoveTask?.(change.id);
-        }
-      }
-
-      const updatedNodes = applyNodeChanges(changes, reactFlowNodes);
-
-      const newTaskNodes = taskNodes.map((task) => {
-        const node = updatedNodes.find((n) => n.id === task.id);
-        if (node) {
-          return { ...task, position: node.position };
-        }
-        return task;
-      });
-
-      onTaskNodesChange?.(newTaskNodes);
-    },
-    [reactFlowNodes, taskNodes, onTaskNodesChange, onRemoveTask],
-  );
-
-  const handleEdgesChange: OnEdgesChange = useCallback(
-    (changes) => {
-      for (const change of changes) {
-        if (change.type === "remove") {
-          onRemoveEdge?.(change.id);
-        }
-      }
-    },
-    [onRemoveEdge],
-  );
-
-  const handleConnect: OnConnect = useCallback(
-    (connection) => {
-      if (connection.source && connection.target) {
-        onAddEdge?.(connection.source, connection.target);
-      }
-    },
-    [onAddEdge],
-  );
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -151,12 +131,6 @@ export function GraphArea({
     },
     [onNodeDoubleClick],
   );
-
-  const handleSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
-    setSelectedNodeIds(new Set(nodes.map((n) => n.id)));
-  }, []);
-
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleAddTaskAtViewCenter = useCallback(() => {
     if (rfInstance && containerRef.current) {
@@ -202,40 +176,6 @@ export function GraphArea({
     [rfInstance, onAddTask, onPaneClickProp],
   );
 
-  useEffect(() => {
-    if (selectedTask?.id && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [selectedTask?.id]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        (event.key === "Delete" || event.key === "Backspace") &&
-        selectedNodeIds.size > 0
-      ) {
-        const activeElement = document.activeElement;
-        if (
-          activeElement?.tagName === "INPUT" ||
-          activeElement?.tagName === "TEXTAREA"
-        ) {
-          return;
-        }
-
-        for (const nodeId of selectedNodeIds) {
-          onRemoveTask?.(nodeId);
-        }
-        setSelectedNodeIds(new Set());
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedNodeIds, onRemoveTask]);
-
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
       <ReactFlow
@@ -250,6 +190,7 @@ export function GraphArea({
         onSelectionChange={handleSelectionChange}
         onInit={setRfInstance}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         selectionOnDrag
         panOnDrag={true}
         selectionKeyCode="Shift"
@@ -261,53 +202,12 @@ export function GraphArea({
         <Background />
         <Controls className="mb-20 sm:mb-0" />
         {selectedTask && (
-          <Panel
-            position="top-right"
-            className="bg-white p-4 rounded-lg shadow-xl border border-gray-200 w-80 m-4"
-          >
-            <div className="flex flex-col gap-4">
-              <div>
-                <label
-                  htmlFor="title"
-                  className="block text-xs font-bold text-gray-500 uppercase mb-1"
-                >
-                  タイトル
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  ref={titleInputRef}
-                  value={selectedTask.title}
-                  onChange={(e) =>
-                    onTitleChange?.(selectedTask.id, e.target.value)
-                  }
-                  className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex gap-2 w-full">
-                <button
-                  type="button"
-                  onClick={() => onNodeDoubleClick?.(selectedTask.id)}
-                  className="flex-1 flex items-center justify-center gap-2 p-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                  title="詳細を見る"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                  <span className="text-sm font-medium">詳細へ</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemoveTask?.(selectedTask.id)}
-                  className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-auto"
-                  title="このタスクを削除"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden sm:inline">
-                    削除
-                  </span>
-                </button>
-              </div>
-            </div>
-          </Panel>
+          <TaskDetailPanel
+            selectedTask={selectedTask}
+            onTitleChange={onTitleChange}
+            onDetailClick={onNodeDoubleClick}
+            onDeleteClick={onRemoveTask}
+          />
         )}
       </ReactFlow>
 
