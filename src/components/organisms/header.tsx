@@ -1,7 +1,7 @@
 import { BackButton } from "../molecules/header/back-button";
 import { CompleteToggle } from "../molecules/header/complete-toggle";
-import { CopyMarkdownButton } from "../molecules/header/copy-markdown-button";
 import { NextTaskButton } from "../molecules/header/next-task-button";
+import { PreviewButton } from "../molecules/header/preview-button";
 import { TaskTitle } from "../molecules/header/task-title";
 
 interface HeaderProps {
@@ -12,7 +12,7 @@ interface HeaderProps {
   onToggleComplete?: () => void;
   onBackClick?: () => void;
   onNextTaskClick?: () => void;
-  onCopyMarkdown?: () => void;
+  onPreviewClick?: () => void;
 }
 
 export function Header({
@@ -23,7 +23,7 @@ export function Header({
   onToggleComplete,
   onBackClick,
   onNextTaskClick,
-  onCopyMarkdown,
+  onPreviewClick,
 }: HeaderProps) {
   return (
     <header className="flex items-center justify-between gap-2 px-3 py-3 md:px-6 md:py-4 border-b bg-white shadow-sm">
@@ -36,7 +36,7 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-        <CopyMarkdownButton onClick={onCopyMarkdown} />
+        <PreviewButton onClick={onPreviewClick} />
         <CompleteToggle completed={completed} onToggle={onToggleComplete} />
         <NextTaskButton onClick={onNextTaskClick} />
       </div>

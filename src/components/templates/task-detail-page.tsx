@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useTaskStore } from "../../stores/task-store";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
+import { PreviewPage } from "./preview-page";
 
 export function TaskDetailPage() {
   const currentTaskId = useTaskStore((state) => state.currentTaskId);
@@ -22,6 +24,8 @@ export function TaskDetailPage() {
   const removeTask = useTaskStore((state) => state.removeTask);
   const generateMarkdown = useTaskStore((state) => state.generateMarkdown);
   const selectTask = useTaskStore((state) => state.selectTask);
+
+  const [showPreview, setShowPreview] = useState(false);
 
   // 現在のタスクを取得
   const currentTask = currentTaskId
@@ -98,13 +102,12 @@ export function TaskDetailPage() {
     }
   };
 
-  const handleCopyMarkdown = async () => {
-    const markdown = generateMarkdown(currentTaskId);
-    try {
-      await navigator.clipboard.writeText(markdown);
-    } catch (error) {
-      console.error("Failed to copy markdown:", error);
-    }
+  const handlePreviewClick = () => {
+    setShowPreview(true);
+  };
+
+  const handleBackFromPreview = () => {
+    setShowPreview(false);
   };
 
   const handleCopyMemo = async () => {
@@ -125,6 +128,11 @@ export function TaskDetailPage() {
     selectTask(null);
   };
 
+  if (showPreview) {
+    const markdown = generateMarkdown(currentTaskId);
+    return <PreviewPage markdown={markdown} onBack={handleBackFromPreview} />;
+  }
+
   return (
     <div className="flex flex-col h-[100dvh]">
       {!isRoot && (
@@ -136,7 +144,7 @@ export function TaskDetailPage() {
           onToggleComplete={handleToggleComplete}
           onBackClick={handleBackClick}
           onNextTaskClick={handleNextTaskClick}
-          onCopyMarkdown={handleCopyMarkdown}
+          onPreviewClick={handlePreviewClick}
         />
       )}
 
