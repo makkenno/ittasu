@@ -13,9 +13,9 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
-import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
 import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
+import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
 import { useGraphHandlers } from "./graph/hooks/use-graph-handlers";
 import { useKeyboardShortcuts } from "./graph/hooks/use-keyboard-shortcuts";
 

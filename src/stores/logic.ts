@@ -28,7 +28,7 @@ export const findNextTask = (
       return allDependenciesMet;
     });
 
-  const candidates = readyTasks.length > 0 ? readyTasks : incompleteTasks;
+    const candidates = readyTasks.length > 0 ? readyTasks : incompleteTasks;
 
     const independentCandidates = candidates.filter((candidate) => {
       return !candidates.some((other) => {
@@ -69,7 +69,8 @@ const isReachable = (
   const visited = new Set<string>();
 
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const current = queue.shift();
+    if (!current) throw new Error("Queue is empty");
     if (current === targetId) return true;
 
     if (visited.has(current)) continue;

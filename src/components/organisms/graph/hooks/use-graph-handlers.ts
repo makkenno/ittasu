@@ -97,12 +97,9 @@ export function useGraphHandlers({
     [onAddEdge],
   );
 
-  const handleSelectionChange = useCallback(
-    ({ nodes }: { nodes: Node[] }) => {
-      setSelectedNodeIds(new Set(nodes.map((n) => n.id)));
-    },
-    [],
-  );
+  const handleSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
+    setSelectedNodeIds(new Set(nodes.map((n) => n.id)));
+  }, []);
 
   return {
     selectedNodeIds,

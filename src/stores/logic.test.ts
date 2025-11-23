@@ -126,7 +126,11 @@ describe("findNextTask", () => {
       createNode("Child3", "Root1", false, 0),
       createNode("Child1", "Root1", false, 0),
     ];
-    const edges = [createEdge("Root1", "Root2"), createEdge("Child1", "Child2"), createEdge("Child2", "Child3")];
+    const edges = [
+      createEdge("Root1", "Root2"),
+      createEdge("Child1", "Child2"),
+      createEdge("Child2", "Child3"),
+    ];
     expect(findNextTask(nodes, edges)).toBe("Child1");
   });
 });
