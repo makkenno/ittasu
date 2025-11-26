@@ -38,6 +38,7 @@ interface GraphAreaProps {
   onImportTasks?: (data: ExportedData) => void;
   onExportTask?: (taskId: string) => void;
   parentId: string | null;
+  shouldAutoFocus?: boolean;
 }
 
 export function GraphArea({
@@ -57,6 +58,7 @@ export function GraphArea({
   onImportTasks,
   onExportTask,
   parentId,
+  shouldAutoFocus = false,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
@@ -229,6 +231,7 @@ export function GraphArea({
             onDetailClick={onNodeDoubleClick}
             onDeleteClick={onRemoveTask}
             onExportClick={onExportTask}
+            autoFocus={shouldAutoFocus}
           />
         )}
       </ReactFlow>

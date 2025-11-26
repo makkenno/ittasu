@@ -10,6 +10,7 @@ interface TaskDetailPanelProps {
   onDetailClick?: (taskId: string) => void;
   onDeleteClick?: (taskId: string) => void;
   onExportClick?: (taskId: string) => void;
+  autoFocus?: boolean;
 }
 
 export function TaskDetailPanel({
@@ -18,18 +19,19 @@ export function TaskDetailPanel({
   onDetailClick,
   onDeleteClick,
   onExportClick,
+  autoFocus = false,
 }: TaskDetailPanelProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   useEffect(() => {
-    if (selectedTask?.id && titleInputRef.current) {
+    if (selectedTask?.id && titleInputRef.current && autoFocus) {
       titleInputRef.current.focus();
       titleInputRef.current.select();
     }
     // Reset confirmation state when task changes
     setIsConfirmingDelete(false);
-  }, [selectedTask?.id]);
+  }, [selectedTask?.id, autoFocus]);
 
   const handleDeleteClick = () => {
     if (isConfirmingDelete) {

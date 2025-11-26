@@ -27,6 +27,7 @@ export function TaskDetailPage() {
   const importSubgraph = useTaskStore((state) => state.importSubgraph);
 
   const [showPreview, setShowPreview] = useState(false);
+  const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
 
   // 現在のタスクを取得
   const currentTask = currentTaskId
@@ -65,6 +66,7 @@ export function TaskDetailPage() {
   };
 
   const handleNodeClick = (taskId: string) => {
+    setShouldAutoFocus(false);
     selectTask(taskId);
   };
 
@@ -81,6 +83,7 @@ export function TaskDetailPage() {
   };
 
   const handleAddTask = (position?: { x: number; y: number }) => {
+    setShouldAutoFocus(true);
     addChildTask(position);
   };
 
@@ -188,6 +191,7 @@ export function TaskDetailPage() {
             onImportTasks={importSubgraph}
             onExportTask={handleExportTask}
             parentId={currentTaskId}
+            shouldAutoFocus={shouldAutoFocus}
           />
         </div>
       ) : (
@@ -211,6 +215,7 @@ export function TaskDetailPage() {
                 onImportTasks={importSubgraph}
                 onExportTask={handleExportTask}
                 parentId={currentTaskId}
+                shouldAutoFocus={shouldAutoFocus}
               />
             </Panel>
             <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">
