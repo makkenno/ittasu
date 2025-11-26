@@ -187,6 +187,7 @@ export function TaskDetailPage() {
             onPaneClick={handlePaneClick}
             onImportTasks={importSubgraph}
             onExportTask={handleExportTask}
+            parentId={currentTaskId}
           />
         </div>
       ) : (
@@ -209,6 +210,7 @@ export function TaskDetailPage() {
                 onPaneClick={handlePaneClick}
                 onImportTasks={importSubgraph}
                 onExportTask={handleExportTask}
+                parentId={currentTaskId}
               />
             </Panel>
             <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">

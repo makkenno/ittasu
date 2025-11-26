@@ -1,5 +1,5 @@
 import { Plus, Upload } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -37,6 +37,7 @@ interface GraphAreaProps {
   onPaneClick?: () => void;
   onImportTasks?: (data: ExportedData) => void;
   onExportTask?: (taskId: string) => void;
+  parentId: string | null;
 }
 
 export function GraphArea({
@@ -55,6 +56,7 @@ export function GraphArea({
   onPaneClick: onPaneClickProp,
   onImportTasks,
   onExportTask,
+  parentId,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
@@ -62,6 +64,17 @@ export function GraphArea({
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: parentId is used as a trigger
+  useEffect(() => {
+    if (rfInstance) {
+      const timer = setTimeout(() => {
+        rfInstance.fitView({ duration: 800 });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [rfInstance, parentId]);
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
