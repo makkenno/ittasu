@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { exportSubgraph } from "../../lib/export-import-utils";
 import { useTaskStore } from "../../stores/task-store";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
@@ -128,6 +129,18 @@ export function TaskDetailPage() {
     selectTask(null);
   };
 
+  const handleExportTask = async (taskId: string) => {
+    const data = exportSubgraph(taskId, nodes, edges);
+    const json = JSON.stringify(data, null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      alert("クリップボードにコピーしました");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      alert("コピーに失敗しました");
+    }
+  };
+
   if (showPreview) {
     return (
       <PreviewPage
@@ -173,6 +186,7 @@ export function TaskDetailPage() {
             onRemoveTask={removeTask}
             onPaneClick={handlePaneClick}
             onImportTasks={importSubgraph}
+            onExportTask={handleExportTask}
           />
         </div>
       ) : (
@@ -194,6 +208,7 @@ export function TaskDetailPage() {
                 onRemoveTask={removeTask}
                 onPaneClick={handlePaneClick}
                 onImportTasks={importSubgraph}
+                onExportTask={handleExportTask}
               />
             </Panel>
             <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">

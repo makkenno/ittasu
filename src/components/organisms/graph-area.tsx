@@ -11,10 +11,7 @@ import ReactFlow, {
   SelectionMode,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import {
-  type ExportedData,
-  exportSubgraph,
-} from "../../lib/export-import-utils";
+import type { ExportedData } from "../../lib/export-import-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import { DeletableEdge } from "../molecules/graph/deletable-edge";
@@ -39,6 +36,7 @@ interface GraphAreaProps {
   onRemoveTask?: (taskId: string) => void;
   onPaneClick?: () => void;
   onImportTasks?: (data: ExportedData) => void;
+  onExportTask?: (taskId: string) => void;
 }
 
 export function GraphArea({
@@ -56,6 +54,7 @@ export function GraphArea({
   onRemoveTask,
   onPaneClick: onPaneClickProp,
   onImportTasks,
+  onExportTask,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
@@ -184,21 +183,6 @@ export function GraphArea({
     [rfInstance, onAddTask, onPaneClickProp],
   );
 
-  const handleExportTask = useCallback(
-    async (taskId: string) => {
-      const data = exportSubgraph(taskId, taskNodes, taskEdges);
-      const json = JSON.stringify(data, null, 2);
-      try {
-        await navigator.clipboard.writeText(json);
-        alert("クリップボードにコピーしました");
-      } catch (error) {
-        console.error("Failed to copy to clipboard:", error);
-        alert("コピーに失敗しました");
-      }
-    },
-    [taskNodes, taskEdges],
-  );
-
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
       <ReactFlow
@@ -230,7 +214,7 @@ export function GraphArea({
             onTitleChange={onTitleChange}
             onDetailClick={onNodeDoubleClick}
             onDeleteClick={onRemoveTask}
-            onExportClick={handleExportTask}
+            onExportClick={onExportTask}
           />
         )}
       </ReactFlow>

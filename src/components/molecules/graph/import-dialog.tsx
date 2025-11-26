@@ -30,7 +30,9 @@ export function ImportDialog({ isOpen, onClose, onImport }: ImportDialogProps) {
         setError(null);
       } else {
         const firstError = result.issues[0];
-        setError(`Invalid format: ${firstError.message} at ${firstError.path?.map(p => p.key).join(".")}`);
+        setError(
+          `Invalid format: ${firstError.message} at ${firstError.path?.map((p) => p.key).join(".")}`,
+        );
       }
     } catch (_e) {
       setError("Invalid JSON format");

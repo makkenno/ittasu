@@ -13,9 +13,20 @@ const TaskNodeSchema = v.object({
     y: v.number(),
   }),
   parentId: v.nullable(v.string()),
-  createdAt: v.pipe(v.string(), v.transform((input) => new Date(input))),
-  updatedAt: v.pipe(v.string(), v.transform((input) => new Date(input))),
-  completedAt: v.nullable(v.pipe(v.string(), v.transform((input) => new Date(input)))),
+  createdAt: v.pipe(
+    v.string(),
+    v.transform((input) => new Date(input)),
+  ),
+  updatedAt: v.pipe(
+    v.string(),
+    v.transform((input) => new Date(input)),
+  ),
+  completedAt: v.nullable(
+    v.pipe(
+      v.string(),
+      v.transform((input) => new Date(input)),
+    ),
+  ),
 });
 
 const TaskEdgeSchema = v.object({
@@ -82,18 +93,32 @@ export const generateImportedData = (
     }
   });
 
-  const newEdges = edges.map((edge) => {
-    return {
-      ...edge,
-      id: `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      source: idMap.get(edge.source)!,
-      target: idMap.get(edge.target)!,
-      parentId:
-        edge.parentId && exportedNodeIds.has(edge.parentId)
-          ? idMap.get(edge.parentId)!
-          : targetParentId,
-    };
-  });
+  const newEdges = edges
+    .filter((edge) => idMap.has(edge.source) && idMap.has(edge.target))
+    .map((edge) => {
+      const newSource = idMap.get(edge.source);
+      const newTarget = idMap.get(edge.target);
+
+      if (!newSource || !newTarget) {
+        throw new Error("Invalid edge reference");
+      }
+
+      let newParentId = targetParentId;
+      if (edge.parentId && exportedNodeIds.has(edge.parentId)) {
+        const mappedParentId = idMap.get(edge.parentId);
+        if (mappedParentId) {
+          newParentId = mappedParentId;
+        }
+      }
+
+      return {
+        ...edge,
+        id: `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        source: newSource,
+        target: newTarget,
+        parentId: newParentId,
+      };
+    });
 
   return { nodes: newNodes, edges: newEdges };
 };
