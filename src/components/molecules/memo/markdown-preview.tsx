@@ -3,6 +3,8 @@ import rehypeHighlight from "rehype-highlight";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import "highlight.js/styles/atom-one-dark.min.css";
+import { common } from "lowlight";
+import { definer as terraform } from "@taga3s/highlightjs-terraform";
 import { Code } from "./markdown-code";
 import { Pre } from "./markdown-pre";
 
@@ -15,7 +17,12 @@ export function MarkdownPreview({ value }: MarkdownPreviewProps) {
     <div className="w-full h-full p-6 overflow-y-auto bg-background text-foreground">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={[
+          [
+            rehypeHighlight,
+            { languages: { ...common, terraform, hcl: terraform } },
+          ],
+        ]}
         components={{
           h1: ({ children }) => (
             <h1 className="text-2xl font-bold mb-4 text-foreground">

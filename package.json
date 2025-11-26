@@ -12,11 +12,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@taga3s/highlightjs-terraform": "^1.0.7",
     "@tailwindcss/vite": "^4.1.17",
     "clsx": "^2.1.1",
     "highlight.js": "^11.11.1",
     "idb-keyval": "^6.2.2",
     "immer": "^10.2.0",
+    "lowlight": "^3.3.0",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
