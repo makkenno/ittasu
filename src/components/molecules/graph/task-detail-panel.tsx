@@ -1,5 +1,6 @@
 import { ChevronRight, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { cn } from "../../../lib/utils";
 import { Panel } from "reactflow";
 import type { TaskNode } from "../../../types/task";
 
@@ -17,13 +18,25 @@ export function TaskDetailPanel({
   onDeleteClick,
 }: TaskDetailPanelProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (selectedTask?.id && titleInputRef.current) {
       titleInputRef.current.focus();
       titleInputRef.current.select();
     }
+    // Reset confirmation state when task changes
+    setIsConfirmingDelete(false);
   }, [selectedTask?.id]);
+
+  const handleDeleteClick = () => {
+    if (isConfirmingDelete) {
+      onDeleteClick?.(selectedTask.id);
+      setIsConfirmingDelete(false);
+    } else {
+      setIsConfirmingDelete(true);
+    }
+  };
 
   return (
     <Panel
@@ -59,12 +72,20 @@ export function TaskDetailPanel({
           </button>
           <button
             type="button"
-            onClick={() => onDeleteClick?.(selectedTask.id)}
-            className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-auto"
-            title="このタスクを削除"
+            onClick={handleDeleteClick}
+            onBlur={() => setIsConfirmingDelete(false)}
+            className={cn(
+              "flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border rounded-lg transition-colors w-auto min-w-[80px]",
+              isConfirmingDelete
+                ? "bg-red-500 border-red-600 text-white hover:bg-red-600"
+                : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50",
+            )}
+            title={isConfirmingDelete ? "本当に削除しますか？" : "このタスクを削除"}
           >
             <Trash2 className="w-4 h-4" />
-            <span className="text-sm font-medium hidden sm:inline">削除</span>
+            <span className="text-sm font-medium hidden sm:inline">
+              {isConfirmingDelete ? "確認" : "削除"}
+            </span>
           </button>
         </div>
       </div>
