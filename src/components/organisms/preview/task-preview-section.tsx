@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import TextareaAutosize from "react-textarea-autosize";
 import { cn } from "../../../lib/utils";
 import type { TaskNode } from "../../../types/task";
 import { MarkdownPreview } from "../../molecules/memo/markdown-preview";
@@ -40,9 +41,6 @@ export function TaskPreviewSection({
   useEffect(() => {
     if (isEditingMemo && memoTextareaRef.current) {
       memoTextareaRef.current.focus();
-      // Auto-resize
-      memoTextareaRef.current.style.height = "auto";
-      memoTextareaRef.current.style.height = `${memoTextareaRef.current.scrollHeight}px`;
     }
   }, [isEditingMemo]);
 
@@ -120,18 +118,15 @@ export function TaskPreviewSection({
 
       <div className="group relative min-h-[2rem]">
         {isEditingMemo ? (
-          <textarea
+          <TextareaAutosize
             ref={memoTextareaRef}
             value={memo}
-            onChange={(e) => {
-              setMemo(e.target.value);
-              e.target.style.height = "auto";
-              e.target.style.height = `${e.target.scrollHeight}px`;
-            }}
+            onChange={(e) => setMemo(e.target.value)}
             onBlur={handleMemoSubmit}
             onKeyDown={(e) => handleKeyDown(e, handleMemoSubmit)}
             className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-none"
             placeholder="メモを入力..."
+            minRows={3}
           />
         ) : (
           // biome-ignore lint/a11y/useSemanticElements: MarkdownPreview contains interactive elements (links), so we cannot use a button.
