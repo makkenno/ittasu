@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
@@ -11,9 +11,14 @@ import ReactFlow, {
   SelectionMode,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import {
+  type ExportedData,
+  exportSubgraph,
+} from "../../lib/export-import-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import { DeletableEdge } from "../molecules/graph/deletable-edge";
+import { ImportDialog } from "../molecules/graph/import-dialog";
 import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
 import { useGraphHandlers } from "./graph/hooks/use-graph-handlers";
@@ -33,6 +38,7 @@ interface GraphAreaProps {
   onRemoveEdge?: (edgeId: string) => void;
   onRemoveTask?: (taskId: string) => void;
   onPaneClick?: () => void;
+  onImportTasks?: (data: ExportedData) => void;
 }
 
 export function GraphArea({
@@ -49,12 +55,14 @@ export function GraphArea({
   onRemoveEdge,
   onRemoveTask,
   onPaneClick: onPaneClickProp,
+  onImportTasks,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
@@ -176,6 +184,21 @@ export function GraphArea({
     [rfInstance, onAddTask, onPaneClickProp],
   );
 
+  const handleExportTask = useCallback(
+    async (taskId: string) => {
+      const data = exportSubgraph(taskId, taskNodes, taskEdges);
+      const json = JSON.stringify(data, null, 2);
+      try {
+        await navigator.clipboard.writeText(json);
+        alert("クリップボードにコピーしました");
+      } catch (error) {
+        console.error("Failed to copy to clipboard:", error);
+        alert("コピーに失敗しました");
+      }
+    },
+    [taskNodes, taskEdges],
+  );
+
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
       <ReactFlow
@@ -207,9 +230,30 @@ export function GraphArea({
             onTitleChange={onTitleChange}
             onDetailClick={onNodeDoubleClick}
             onDeleteClick={onRemoveTask}
+            onExportClick={handleExportTask}
           />
         )}
       </ReactFlow>
+
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={(data) => onImportTasks?.(data)}
+      />
+
+      <div className="absolute top-4 left-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setIsImportDialogOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+          title="タスクをインポート"
+        >
+          <Upload className="w-4 h-4" />
+          <span className="text-sm font-medium hidden sm:inline">
+            インポート
+          </span>
+        </button>
+      </div>
 
       <button
         type="button"

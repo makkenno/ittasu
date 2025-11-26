@@ -3,8 +3,8 @@ import rehypeHighlight from "rehype-highlight";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import "highlight.js/styles/atom-one-dark.min.css";
-import { common } from "lowlight";
 import { definer as terraform } from "@taga3s/highlightjs-terraform";
+import { common } from "lowlight";
 import { Code } from "./markdown-code";
 import { Pre } from "./markdown-pre";
 

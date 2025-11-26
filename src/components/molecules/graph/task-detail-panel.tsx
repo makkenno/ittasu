@@ -1,7 +1,7 @@
-import { ChevronRight, Trash2 } from "lucide-react";
+import { ChevronRight, Copy, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "../../../lib/utils";
 import { Panel } from "reactflow";
+import { cn } from "../../../lib/utils";
 import type { TaskNode } from "../../../types/task";
 
 interface TaskDetailPanelProps {
@@ -9,6 +9,7 @@ interface TaskDetailPanelProps {
   onTitleChange?: (taskId: string, newTitle: string) => void;
   onDetailClick?: (taskId: string) => void;
   onDeleteClick?: (taskId: string) => void;
+  onExportClick?: (taskId: string) => void;
 }
 
 export function TaskDetailPanel({
@@ -16,6 +17,7 @@ export function TaskDetailPanel({
   onTitleChange,
   onDetailClick,
   onDeleteClick,
+  onExportClick,
 }: TaskDetailPanelProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -72,6 +74,14 @@ export function TaskDetailPanel({
           </button>
           <button
             type="button"
+            onClick={() => onExportClick?.(selectedTask.id)}
+            className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors w-auto"
+            title="このタスクをエクスポート（クリップボードにコピー）"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
             onClick={handleDeleteClick}
             onBlur={() => setIsConfirmingDelete(false)}
             className={cn(
@@ -80,7 +90,9 @@ export function TaskDetailPanel({
                 ? "bg-red-500 border-red-600 text-white hover:bg-red-600"
                 : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50",
             )}
-            title={isConfirmingDelete ? "本当に削除しますか？" : "このタスクを削除"}
+            title={
+              isConfirmingDelete ? "本当に削除しますか？" : "このタスクを削除"
+            }
           >
             <Trash2 className="w-4 h-4" />
             <span className="text-sm font-medium hidden sm:inline">

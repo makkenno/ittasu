@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  type ExportedData,
+  generateImportedData,
+} from "../lib/export-import-utils";
 import { getDescendantIds } from "../lib/graph-utils";
 import { indexedDBStorage } from "../lib/indexeddb-storage";
 import {
@@ -44,6 +48,8 @@ interface TaskStore {
   goToNextTask: () => void;
 
   selectTask: (taskId: string | null) => void;
+
+  importSubgraph: (data: ExportedData) => void;
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -53,6 +59,19 @@ export const useTaskStore = create<TaskStore>()(
       edges: [...sampleEdges, ...sampleChildEdges],
       currentTaskId: null,
       selectedTaskId: null,
+
+      importSubgraph: (data: ExportedData) => {
+        const { currentTaskId } = get();
+        const { nodes: newNodes, edges: newEdges } = generateImportedData(
+          data,
+          currentTaskId,
+        );
+
+        set((state) => ({
+          nodes: [...state.nodes, ...newNodes],
+          edges: [...state.edges, ...newEdges],
+        }));
+      },
 
       updateTaskTitle: (taskId: string, title: string) => {
         set((state) => ({
