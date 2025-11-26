@@ -107,12 +107,6 @@ export function GraphArea({
     onAddEdge,
   });
 
-  useKeyboardShortcuts({
-    selectedNodeIds,
-    onRemoveTask,
-    setSelectedNodeIds,
-  });
-
   const reactFlowEdges: Edge[] = useMemo(
     () =>
       taskEdges.map((edge) => ({
@@ -167,6 +161,13 @@ export function GraphArea({
       onAddTask?.();
     }
   }, [rfInstance, onAddTask]);
+
+  useKeyboardShortcuts({
+    selectedNodeIds,
+    onRemoveTask,
+    setSelectedNodeIds,
+    onAddTask: handleAddTaskAtViewCenter,
+  });
 
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
