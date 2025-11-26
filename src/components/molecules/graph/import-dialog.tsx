@@ -58,7 +58,7 @@ export function ImportDialog({ isOpen, onClose, onImport }: ImportDialogProps) {
             エクスポートされたJSONテキストを貼り付けてください。
           </p>
           <textarea
-            className="w-full h-64 p-2 border rounded-md font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-64 p-2 border rounded-md font-mono text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder='{"version":1,"nodes":[...],"edges":[...]}'
             value={text}
             onChange={(e) => {
