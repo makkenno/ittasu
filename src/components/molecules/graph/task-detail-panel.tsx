@@ -29,7 +29,6 @@ export function TaskDetailPanel({
       titleInputRef.current.focus();
       titleInputRef.current.select();
     }
-    // Reset confirmation state when task changes
     setIsConfirmingDelete(false);
   }, [selectedTask?.id, autoFocus]);
 
