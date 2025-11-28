@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { Mermaid } from "./mermaid";
 
 interface CodeProps {
   children?: React.ReactNode;
@@ -6,6 +7,12 @@ interface CodeProps {
 }
 
 export const Code: FC<CodeProps> = ({ children, className }) => {
+  const isMermaid = className?.includes("language-mermaid");
+
+  if (isMermaid) {
+    return <Mermaid code={String(children).trim()} />;
+  }
+
   if (className) {
     return <code className={className}>{children}</code>;
   }
