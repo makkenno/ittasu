@@ -1,5 +1,5 @@
 import { useMachine } from "@xstate/react";
-import { LayoutTemplate, Plus, Trash2, Upload } from "lucide-react";
+import { LayoutTemplate, MousePointer2, Plus, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
@@ -379,8 +379,8 @@ export function GraphArea({
           }`}
           title={isSelectionMode ? "選択モードを終了" : "選択モードを開始"}
         >
-          <LayoutTemplate className="w-4 h-4" />
-          <span className="text-sm font-medium">
+          <MousePointer2 className="w-4 h-4" />
+          <span className="text-sm font-medium hidden sm:inline">
             {isSelectionMode ? "選択モード中" : "選択"}
           </span>
         </button>
