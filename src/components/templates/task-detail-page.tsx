@@ -5,6 +5,7 @@ import {
   exportSubgraph,
 } from "../../lib/export-import-utils";
 import { useTaskStore } from "../../stores/task-store";
+import type { TemplateTask } from "../../types/template";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
@@ -24,6 +25,7 @@ export function TaskDetailPage() {
   const goToNextTask = useTaskStore((state) => state.goToNextTask);
   const addChildTask = useTaskStore((state) => state.addChildTask);
   const addTemplate = useTaskStore((state) => state.addTemplate);
+  const saveTemplate = useTaskStore((state) => state.saveTemplate);
   const addEdge = useTaskStore((state) => state.addEdge);
   const removeEdge = useTaskStore((state) => state.removeEdge);
   const removeTask = useTaskStore((state) => state.removeTask);
@@ -92,11 +94,7 @@ export function TaskDetailPage() {
   };
 
   const handleAddTemplate = (template: {
-    tasks: {
-      title: string;
-      memo?: string;
-      position: { x: number; y: number };
-    }[];
+    tasks: (TemplateTask & { position: { x: number; y: number } })[];
     edges: { sourceIndex: number; targetIndex: number }[];
   }) => {
     setShouldAutoFocus(false); // 複数追加時はフォーカスしない
@@ -172,6 +170,15 @@ export function TaskDetailPage() {
     }
   };
 
+  const handleSaveTemplate = (
+    name: string,
+    description: string,
+    selectedNodeIds: Set<string>,
+  ) => {
+    saveTemplate(name, description, selectedNodeIds);
+    alert("テンプレートを保存しました");
+  };
+
   if (showPreview) {
     return (
       <PreviewPage
@@ -220,6 +227,7 @@ export function TaskDetailPage() {
             onImportTasks={importSubgraph}
             onExportTask={handleExportTask}
             onExportSelected={handleExportSelected}
+            onSaveTemplate={handleSaveTemplate}
             parentId={currentTaskId}
             shouldAutoFocus={shouldAutoFocus}
           />
@@ -246,6 +254,7 @@ export function TaskDetailPage() {
                 onImportTasks={importSubgraph}
                 onExportTask={handleExportTask}
                 onExportSelected={handleExportSelected}
+                onSaveTemplate={handleSaveTemplate}
                 parentId={currentTaskId}
                 shouldAutoFocus={shouldAutoFocus}
               />

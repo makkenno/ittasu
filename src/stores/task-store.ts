@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { defaultTemplates } from "../data/templates";
 import {
   type ExportedData,
   generateImportedData,
@@ -14,11 +15,13 @@ import {
 } from "../lib/sample-data";
 import type { TaskEdge } from "../types/edge";
 import type { TaskNode } from "../types/task";
+import type { TaskTemplate, TemplateTask } from "../types/template";
 import { findNextTask } from "./logic";
 
 interface TaskStore {
   nodes: TaskNode[];
   edges: TaskEdge[];
+  templates: TaskTemplate[];
   currentTaskId: string | null;
   selectedTaskId: string | null;
 
@@ -36,13 +39,17 @@ interface TaskStore {
   addChildTask: (position?: { x: number; y: number }) => void;
 
   addTemplate: (template: {
-    tasks: {
-      title: string;
-      memo?: string;
-      position: { x: number; y: number };
-    }[];
+    tasks: (TemplateTask & { position: { x: number; y: number } })[];
     edges: { sourceIndex: number; targetIndex: number }[];
   }) => void;
+
+  saveTemplate: (
+    name: string,
+    description: string,
+    selectedNodeIds: Set<string>,
+  ) => void;
+
+  deleteTemplate: (templateId: string) => void;
 
   addEdge: (source: string, target: string) => void;
 
@@ -66,6 +73,7 @@ export const useTaskStore = create<TaskStore>()(
     (set, get) => ({
       nodes: [...sampleNodes, ...sampleChildNodes],
       edges: [...sampleEdges, ...sampleChildEdges],
+      templates: defaultTemplates,
       currentTaskId: null,
       selectedTaskId: null,
 
@@ -157,47 +165,200 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       addTemplate: (template: {
-        tasks: {
-          title: string;
-          memo?: string;
-          position: { x: number; y: number };
-        }[];
+        tasks: (TemplateTask & { position: { x: number; y: number } })[];
         edges: { sourceIndex: number; targetIndex: number }[];
       }) => {
         const { currentTaskId } = get();
         const now = Date.now();
+        const allNewNodes: TaskNode[] = [];
+        const allNewEdges: TaskEdge[] = [];
 
-        const newTasks: TaskNode[] = template.tasks.map((task, index) => ({
-          id: `task-${now}-${index}`,
-          title: task.title,
-          memo: task.memo || "",
-          completed: false,
-          parentId: currentTaskId,
-          position: task.position,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          completedAt: null,
-        }));
+        const processTask = (
+          task: TemplateTask & { position: { x: number; y: number } },
+          index: number,
+          parentId: string | null,
+          idPrefix: string,
+        ): TaskNode => {
+          const newTaskId = `task-${now}-${idPrefix}-${index}`;
+          const newNode: TaskNode = {
+            id: newTaskId,
+            title: task.title,
+            memo: task.memo || "",
+            completed: false,
+            parentId: parentId,
+            position: task.position,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            completedAt: null,
+          };
+          allNewNodes.push(newNode);
 
-        const newEdges: TaskEdge[] = template.edges
-          .map((edge, index) => {
-            const sourceTask = newTasks[edge.sourceIndex];
-            const targetTask = newTasks[edge.targetIndex];
+          if (task.children && task.children.length > 0) {
+            const childTasks = task.children.map((c: TemplateTask) => ({
+              ...c,
+              position: c.relativePosition,
+            }));
+            processLevel(
+              childTasks,
+              task.edges || [],
+              newTaskId,
+              `${idPrefix}-${index}`,
+            );
+          }
+          return newNode;
+        };
 
-            if (!sourceTask || !targetTask) return null;
+        const processEdges = (
+          levelEdges: { sourceIndex: number; targetIndex: number }[],
+          levelNodes: TaskNode[],
+          parentId: string | null,
+          idPrefix: string,
+        ) => {
+          for (let i = 0; i < levelEdges.length; i++) {
+            const edge = levelEdges[i];
+            if (!edge) continue;
 
-            return {
-              id: `edge-${now}-${index}`,
-              source: sourceTask.id,
-              target: targetTask.id,
-              parentId: currentTaskId,
-            };
-          })
-          .filter((edge): edge is TaskEdge => edge !== null);
+            const sourceNode = levelNodes[edge.sourceIndex];
+            const targetNode = levelNodes[edge.targetIndex];
+
+            if (sourceNode && targetNode) {
+              allNewEdges.push({
+                id: `edge-${now}-${idPrefix}-${i}`,
+                source: sourceNode.id,
+                target: targetNode.id,
+                parentId: parentId,
+              });
+            }
+          }
+        };
+
+        const processLevel = (
+          tasks: (TemplateTask & { position: { x: number; y: number } })[],
+          levelEdges: { sourceIndex: number; targetIndex: number }[],
+          parentId: string | null,
+          idPrefix: string,
+        ) => {
+          const levelNodes: TaskNode[] = [];
+
+          for (let i = 0; i < tasks.length; i++) {
+            const task = tasks[i];
+            if (!task) continue;
+            levelNodes.push(processTask(task, i, parentId, idPrefix));
+          }
+
+          processEdges(levelEdges, levelNodes, parentId, idPrefix);
+        };
+
+        processLevel(template.tasks, template.edges, currentTaskId, "root");
 
         set((state) => ({
-          nodes: [...state.nodes, ...newTasks],
-          edges: [...state.edges, ...newEdges],
+          nodes: [...state.nodes, ...allNewNodes],
+          edges: [...state.edges, ...allNewEdges],
+        }));
+      },
+
+      saveTemplate: (
+        name: string,
+        description: string,
+        selectedNodeIds: Set<string>,
+      ) => {
+        const { nodes, edges } = get();
+        const selectedNodes = nodes.filter((node) =>
+          selectedNodeIds.has(node.id),
+        );
+
+        if (selectedNodes.length === 0) return;
+
+        // Calculate bounding box to normalize positions
+        const minX = Math.min(...selectedNodes.map((n) => n.position.x));
+        const minY = Math.min(...selectedNodes.map((n) => n.position.y));
+
+        // Helper to recursively build template task tree
+        const buildTemplateTask = (node: TaskNode): TemplateTask => {
+          const children = nodes.filter((n) => n.parentId === node.id);
+          const childEdges = edges.filter((e) => e.parentId === node.id);
+
+          // Map children to TemplateTask
+          const templateChildren = children.map(buildTemplateTask);
+
+          // Map edges to indices
+          const templateEdges = childEdges
+            .map((edge) => {
+              const sourceIndex = children.findIndex(
+                (n) => n.id === edge.source,
+              );
+              const targetIndex = children.findIndex(
+                (n) => n.id === edge.target,
+              );
+              if (sourceIndex === -1 || targetIndex === -1) return null;
+              return { sourceIndex, targetIndex };
+            })
+            .filter(
+              (e): e is { sourceIndex: number; targetIndex: number } =>
+                e !== null,
+            );
+
+          return {
+            title: node.title,
+            memo: node.memo,
+            relativePosition: {
+              x: node.position.x, // For children, this is relative to parent's content area (conceptually)
+              y: node.position.y,
+            },
+            children:
+              templateChildren.length > 0 ? templateChildren : undefined,
+            edges: templateEdges.length > 0 ? templateEdges : undefined,
+          };
+        };
+
+        const templateTasks: TemplateTask[] = selectedNodes.map((node) => {
+          const task = buildTemplateTask(node);
+          // Adjust top-level position to be relative to the group's top-left
+          task.relativePosition = {
+            x: node.position.x - minX,
+            y: node.position.y - minY,
+          };
+          return task;
+        });
+
+        // Edges between top-level selected nodes
+        const topLevelEdges = edges
+          .filter(
+            (edge) =>
+              selectedNodeIds.has(edge.source) &&
+              selectedNodeIds.has(edge.target),
+          )
+          .map((edge) => {
+            const sourceIndex = selectedNodes.findIndex(
+              (n) => n.id === edge.source,
+            );
+            const targetIndex = selectedNodes.findIndex(
+              (n) => n.id === edge.target,
+            );
+            if (sourceIndex === -1 || targetIndex === -1) return null;
+            return { sourceIndex, targetIndex };
+          })
+          .filter(
+            (e): e is { sourceIndex: number; targetIndex: number } =>
+              e !== null,
+          );
+
+        const newTemplate: TaskTemplate = {
+          id: `template-${Date.now()}`,
+          name,
+          description,
+          tasks: templateTasks,
+          edges: topLevelEdges,
+        };
+
+        set((state) => ({
+          templates: [...state.templates, newTemplate],
+        }));
+      },
+
+      deleteTemplate: (templateId: string) => {
+        set((state) => ({
+          templates: state.templates.filter((t) => t.id !== templateId),
         }));
       },
 

@@ -1,5 +1,5 @@
-import { LayoutTemplate } from "lucide-react";
-import { defaultTemplates } from "../../../data/templates";
+import { LayoutTemplate, Trash2 } from "lucide-react";
+import { useTaskStore } from "../../../stores/task-store";
 import type { TaskTemplate } from "../../../types/template";
 
 interface TemplateDialogProps {
@@ -13,6 +13,9 @@ export function TemplateDialog({
   onClose,
   onSelect,
 }: TemplateDialogProps) {
+  const templates = useTaskStore((state) => state.templates);
+  const deleteTemplate = useTaskStore((state) => state.deleteTemplate);
+
   if (!isOpen) return null;
 
   return (
@@ -32,30 +35,34 @@ export function TemplateDialog({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {defaultTemplates.map((template) => (
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
+          {templates.map((template) => (
             <button
-              key={template.id}
               type="button"
+              key={template.id}
+              className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer group relative text-left w-full"
               onClick={() => onSelect(template)}
-              className="flex flex-col items-start p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
             >
-              <h3 className="font-bold text-gray-800 group-hover:text-blue-600 mb-2">
-                {template.name}
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
+              <h3 className="font-bold text-gray-800 mb-2">{template.name}</h3>
+              <p className="text-sm text-gray-600 mb-4">
                 {template.description}
               </p>
-              <div className="flex flex-wrap gap-2 mt-auto">
-                {template.tasks.map((task, index) => (
-                  <span
-                    key={`${template.id}-task-${index}`}
-                    className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full"
-                  >
-                    {task.title}
-                  </span>
-                ))}
+              <div className="text-xs text-gray-500">
+                タスク数: {template.tasks.length}
               </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm("このテンプレートを削除してもよろしいですか？")) {
+                    deleteTemplate(template.id);
+                  }
+                }}
+                className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                title="テンプレートを削除"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </button>
           ))}
         </div>

@@ -21,9 +21,10 @@ import "reactflow/dist/style.css";
 import type { ExportedData } from "../../lib/export-import-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
-import type { TaskTemplate } from "../../types/template";
+import type { TaskTemplate, TemplateTask } from "../../types/template";
 import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { ImportDialog } from "../molecules/graph/import-dialog";
+import { SaveTemplateDialog } from "../molecules/graph/save-template-dialog";
 import { SelectionOverlay } from "../molecules/graph/selection-overlay";
 import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
@@ -43,11 +44,7 @@ interface GraphAreaProps {
   onTitleChange?: (taskId: string, newTitle: string) => void;
   onAddTask?: (position?: { x: number; y: number }) => void;
   onAddTemplate?: (template: {
-    tasks: {
-      title: string;
-      memo?: string;
-      position: { x: number; y: number };
-    }[];
+    tasks: (TemplateTask & { position: { x: number; y: number } })[];
     edges: { sourceIndex: number; targetIndex: number }[];
   }) => void;
   onAddEdge?: (source: string, target: string) => void;
@@ -57,6 +54,11 @@ interface GraphAreaProps {
   onImportTasks?: (data: ExportedData) => void;
   onExportTask?: (taskId: string) => void;
   onExportSelected?: (selectedIds: Set<string>) => void;
+  onSaveTemplate?: (
+    name: string,
+    description: string,
+    selectedNodeIds: Set<string>,
+  ) => void;
   parentId?: string | null;
   shouldAutoFocus?: boolean;
 }
@@ -79,6 +81,7 @@ export function GraphArea({
   onImportTasks,
   onExportTask,
   onExportSelected,
+  onSaveTemplate,
   parentId = null,
   shouldAutoFocus = false,
 }: GraphAreaProps) {
@@ -89,6 +92,8 @@ export function GraphArea({
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isSaveTemplateDialogOpen, setIsSaveTemplateDialogOpen] =
+    useState(false);
 
   const [state, send] = useMachine(
     graphMachine.provide({
@@ -283,6 +288,9 @@ export function GraphArea({
           x: centerPosition.x + task.relativePosition.x - 250, // 中央寄せのための調整 (概算)
           y: centerPosition.y + task.relativePosition.y,
         },
+        relativePosition: task.relativePosition,
+        children: task.children,
+        edges: task.edges,
       }));
 
       onAddTemplate?.({
@@ -313,6 +321,14 @@ export function GraphArea({
     if (selectedNodeIds.size === 0) return;
     onExportSelected?.(selectedNodeIds);
   }, [selectedNodeIds, onExportSelected]);
+
+  const handleSaveTemplate = useCallback(
+    (name: string, description: string) => {
+      if (selectedNodeIds.size === 0) return;
+      onSaveTemplate?.(name, description, selectedNodeIds);
+    },
+    [selectedNodeIds, onSaveTemplate],
+  );
 
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
@@ -381,6 +397,12 @@ export function GraphArea({
         onSelect={handleTemplateSelect}
       />
 
+      <SaveTemplateDialog
+        isOpen={isSaveTemplateDialogOpen}
+        onClose={() => setIsSaveTemplateDialogOpen(false)}
+        onSave={handleSaveTemplate}
+      />
+
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-50">
         <button
           type="button"
@@ -424,6 +446,17 @@ export function GraphArea({
             <Upload className="w-6 h-6 sm:w-5 sm:h-5 rotate-180" />
             <span className="font-medium hidden sm:inline">
               エクスポート ({selectedNodeIds.size})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSaveTemplateDialogOpen(true)}
+            className="flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white text-blue-600 border border-gray-300 rounded-full sm:rounded-lg shadow-lg hover:bg-blue-50 transition-colors"
+            title="選択したタスクをテンプレートとして保存"
+          >
+            <LayoutTemplate className="w-6 h-6 sm:w-5 sm:h-5" />
+            <span className="font-medium hidden sm:inline">
+              テンプレート保存 ({selectedNodeIds.size})
             </span>
           </button>
           <button
