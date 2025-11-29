@@ -310,21 +310,21 @@ export function GraphArea({
       <button
         type="button"
         onClick={handleAddTaskAtViewCenter}
-        className="absolute bottom-12 right-4 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 transition-colors pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+        className="absolute bottom-12 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-full sm:rounded-lg shadow-lg hover:bg-blue-600 transition-colors pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
         title="新しいタスクを追加"
       >
-        <Plus className="w-5 h-5" />
-        <span className="font-medium">タスクを追加</span>
+        <Plus className="w-6 h-6 sm:w-5 sm:h-5" />
+        <span className="font-medium hidden sm:inline">タスクを追加</span>
       </button>
 
       <button
         type="button"
         onClick={() => setIsTemplateDialogOpen(true)}
-        className="absolute bottom-24 right-4 flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-lg hover:bg-gray-50 transition-colors pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+        className="absolute bottom-28 sm:bottom-24 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
         title="テンプレートから追加"
       >
-        <LayoutTemplate className="w-5 h-5" />
-        <span className="font-medium">テンプレートから追加</span>
+        <LayoutTemplate className="w-6 h-6 sm:w-5 sm:h-5" />
+        <span className="font-medium hidden sm:inline">テンプレートから追加</span>
       </button>
     </div>
   );
