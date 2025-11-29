@@ -1,5 +1,11 @@
 import { useMachine } from "@xstate/react";
-import { LayoutTemplate, MousePointer2, Plus, Trash2, Upload } from "lucide-react";
+import {
+  LayoutTemplate,
+  MousePointer2,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,

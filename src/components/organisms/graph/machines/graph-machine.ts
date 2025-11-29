@@ -1,10 +1,10 @@
 import { assign, setup } from "xstate";
 
-export type GraphContext = {
+type GraphContext = {
   selectedNodeIds: Set<string>;
 };
 
-export type GraphEvent =
+type GraphEvent =
   | { type: "TOGGLE_MODE" }
   | { type: "SELECT_NODE"; nodeId: string; multiple?: boolean }
   | { type: "SET_SELECTION"; nodeIds: string[] }

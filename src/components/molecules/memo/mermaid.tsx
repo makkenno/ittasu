@@ -47,6 +47,7 @@ export function Mermaid({ code }: MermaidProps) {
     <div
       ref={ref}
       className="mermaid w-full flex justify-center p-4 bg-white rounded-lg border border-gray-200 my-4"
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid generates safe SVG
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
