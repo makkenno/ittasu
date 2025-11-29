@@ -22,6 +22,7 @@ import type { ExportedData } from "../../lib/export-import-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import type { TaskTemplate, TemplateTask } from "../../types/template";
+import { ConfirmDialog } from "../molecules/common/confirm-dialog";
 import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { ImportDialog } from "../molecules/graph/import-dialog";
 import { SaveTemplateDialog } from "../molecules/graph/save-template-dialog";
@@ -94,6 +95,9 @@ export function GraphArea({
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isSaveTemplateDialogOpen, setIsSaveTemplateDialogOpen] =
     useState(false);
+  const [deleteTargetIds, setDeleteTargetIds] = useState<Set<string> | null>(
+    null,
+  );
 
   const [state, send] = useMachine(
     graphMachine.provide({
@@ -222,17 +226,20 @@ export function GraphArea({
 
   useKeyboardShortcuts({
     selectedNodeIds,
-    onRemoveTask,
-    setSelectedNodeIds: (ids) => {
-      if (ids instanceof Set) {
-        if (ids.size === 0) {
-          send({ type: "CLEAR_SELECTION" });
-        } else {
-          send({ type: "SET_SELECTION", nodeIds: Array.from(ids) });
-        }
+    onDelete: () => {
+      if (selectedNodeIds.size > 0) {
+        setDeleteTargetIds(new Set(selectedNodeIds));
       }
     },
     onAddTask: handleAddTaskAtViewCenter,
+    onEscape: () => {
+      if (isSelectionMode) {
+        send({ type: "TOGGLE_MODE" });
+      }
+    },
+    onToggleSelectionMode: () => {
+      send({ type: "TOGGLE_MODE" });
+    },
   });
 
   const onPaneClick = useCallback(
@@ -311,11 +318,17 @@ export function GraphArea({
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedNodeIds.size === 0) return;
-    for (const id of selectedNodeIds) {
+    setDeleteTargetIds(new Set(selectedNodeIds));
+  }, [selectedNodeIds]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!deleteTargetIds) return;
+    for (const id of deleteTargetIds) {
       onRemoveTask?.(id);
     }
     send({ type: "DELETE_SELECTED" });
-  }, [selectedNodeIds, onRemoveTask, send]);
+    setDeleteTargetIds(null);
+  }, [deleteTargetIds, onRemoveTask, send]);
 
   const handleExportSelected = useCallback(() => {
     if (selectedNodeIds.size === 0) return;
@@ -360,7 +373,7 @@ export function GraphArea({
             selectedTask={selectedTask}
             onTitleChange={onTitleChange}
             onDetailClick={onNodeDoubleClick}
-            onDeleteClick={onRemoveTask}
+            onDeleteClick={(taskId) => setDeleteTargetIds(new Set([taskId]))}
             onExportClick={onExportTask}
             autoFocus={shouldAutoFocus}
           />
@@ -401,6 +414,16 @@ export function GraphArea({
         isOpen={isSaveTemplateDialogOpen}
         onClose={() => setIsSaveTemplateDialogOpen(false)}
         onSave={handleSaveTemplate}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTargetIds}
+        title="タスクの削除"
+        message={`選択した${deleteTargetIds?.size ?? 0}件のタスクを削除してもよろしいですか？この操作は取り消せません。`}
+        confirmLabel="削除"
+        isDestructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTargetIds(null)}
       />
 
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-50">

@@ -2,16 +2,18 @@ import { useEffect } from "react";
 
 interface UseKeyboardShortcutsProps {
   selectedNodeIds: Set<string>;
-  onRemoveTask?: (taskId: string) => void;
-  setSelectedNodeIds: (ids: Set<string>) => void;
+  onDelete?: () => void;
   onAddTask?: () => void;
+  onEscape?: () => void;
+  onToggleSelectionMode?: () => void;
 }
 
 export function useKeyboardShortcuts({
   selectedNodeIds,
-  onRemoveTask,
-  setSelectedNodeIds,
+  onDelete,
   onAddTask,
+  onEscape,
+  onToggleSelectionMode,
 }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     const shouldIgnoreEvent = () => {
@@ -25,10 +27,7 @@ export function useKeyboardShortcuts({
     const tryHandleDelete = (event: KeyboardEvent) => {
       const isDeleteKey = event.key === "Delete" || event.key === "Backspace";
       if (isDeleteKey && selectedNodeIds.size > 0) {
-        for (const nodeId of selectedNodeIds) {
-          onRemoveTask?.(nodeId);
-        }
-        setSelectedNodeIds(new Set());
+        onDelete?.();
         return true;
       }
       return false;
@@ -42,15 +41,35 @@ export function useKeyboardShortcuts({
       return false;
     };
 
+    const tryHandleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onEscape?.();
+        return true;
+      }
+      return false;
+    };
+
+    const tryHandleToggleSelectionMode = (event: KeyboardEvent) => {
+      if (event.key === "s" || event.key === "S") {
+        if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+          onToggleSelectionMode?.();
+          return true;
+        }
+      }
+      return false;
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (shouldIgnoreEvent()) return;
       if (tryHandleDelete(event)) return;
-      tryHandleAddTask(event);
+      if (tryHandleAddTask(event)) return;
+      if (tryHandleEscape(event)) return;
+      tryHandleToggleSelectionMode(event);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedNodeIds, onRemoveTask, setSelectedNodeIds, onAddTask]);
+  }, [selectedNodeIds, onDelete, onAddTask, onEscape, onToggleSelectionMode]);
 }
