@@ -5,6 +5,7 @@ import {
   exportSubgraph,
 } from "../../lib/export-import-utils";
 import { useTaskStore } from "../../stores/task-store";
+import { useToastStore } from "../../stores/toast-store";
 import type { TemplateTask } from "../../types/template";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
@@ -31,6 +32,7 @@ export function TaskDetailPage() {
   const removeTask = useTaskStore((state) => state.removeTask);
   const selectTask = useTaskStore((state) => state.selectTask);
   const importSubgraph = useTaskStore((state) => state.importSubgraph);
+  const addToast = useToastStore((state) => state.addToast);
 
   const [showPreview, setShowPreview] = useState(false);
   const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
@@ -151,10 +153,10 @@ export function TaskDetailPage() {
     const json = JSON.stringify(data, null, 2);
     try {
       await navigator.clipboard.writeText(json);
-      alert("クリップボードにコピーしました");
+      addToast("クリップボードにコピーしました", "success");
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
-      alert("コピーに失敗しました");
+      addToast("コピーに失敗しました", "error");
     }
   };
 
@@ -163,10 +165,10 @@ export function TaskDetailPage() {
     const json = JSON.stringify(data, null, 2);
     try {
       await navigator.clipboard.writeText(json);
-      alert("クリップボードにコピーしました");
+      addToast("クリップボードにコピーしました", "success");
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
-      alert("コピーに失敗しました");
+      addToast("コピーに失敗しました", "error");
     }
   };
 
@@ -176,7 +178,7 @@ export function TaskDetailPage() {
     selectedNodeIds: Set<string>,
   ) => {
     saveTemplate(name, description, selectedNodeIds);
-    alert("テンプレートを保存しました");
+    addToast("テンプレートを保存しました", "success");
   };
 
   if (showPreview) {
