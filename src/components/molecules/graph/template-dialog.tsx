@@ -16,14 +16,12 @@ export function TemplateDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl overflow-hidden max-h-[80vh] flex flex-col">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutTemplate className="w-5 h-5 text-blue-500" />
-            <h2 className="text-xl font-bold text-gray-800">
-              テンプレート
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">テンプレート</h2>
           </div>
           <button
             type="button"

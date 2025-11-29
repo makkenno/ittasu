@@ -88,16 +88,14 @@ export function TaskDetailPage() {
     addChildTask(position);
   };
 
-  const handleAddTemplate = (
-    template: {
-      tasks: {
-        title: string;
-        memo?: string;
-        position: { x: number; y: number };
-      }[];
-      edges: { sourceIndex: number; targetIndex: number }[];
-    },
-  ) => {
+  const handleAddTemplate = (template: {
+    tasks: {
+      title: string;
+      memo?: string;
+      position: { x: number; y: number };
+    }[];
+    edges: { sourceIndex: number; targetIndex: number }[];
+  }) => {
     setShouldAutoFocus(false); // 複数追加時はフォーカスしない
     addTemplate(template);
   };

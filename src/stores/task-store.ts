@@ -35,16 +35,14 @@ interface TaskStore {
 
   addChildTask: (position?: { x: number; y: number }) => void;
 
-  addTemplate: (
-    template: {
-      tasks: {
-        title: string;
-        memo?: string;
-        position: { x: number; y: number };
-      }[];
-      edges: { sourceIndex: number; targetIndex: number }[];
-    },
-  ) => void;
+  addTemplate: (template: {
+    tasks: {
+      title: string;
+      memo?: string;
+      position: { x: number; y: number };
+    }[];
+    edges: { sourceIndex: number; targetIndex: number }[];
+  }) => void;
 
   addEdge: (source: string, target: string) => void;
 
@@ -158,16 +156,14 @@ export const useTaskStore = create<TaskStore>()(
         }));
       },
 
-      addTemplate: (
-        template: {
-          tasks: {
-            title: string;
-            memo?: string;
-            position: { x: number; y: number };
-          }[];
-          edges: { sourceIndex: number; targetIndex: number }[];
-        },
-      ) => {
+      addTemplate: (template: {
+        tasks: {
+          title: string;
+          memo?: string;
+          position: { x: number; y: number };
+        }[];
+        edges: { sourceIndex: number; targetIndex: number }[];
+      }) => {
         const { currentTaskId } = get();
         const now = Date.now();
 

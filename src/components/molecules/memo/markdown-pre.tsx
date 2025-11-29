@@ -1,4 +1,4 @@
-import { isValidElement, type FC } from "react";
+import { type FC, isValidElement } from "react";
 
 interface PreProps {
   children?: React.ReactNode;

@@ -9,7 +9,7 @@ export interface TaskNodeData {
   onToggleComplete?: (taskId: string) => void;
 }
 
-export function TaskNode({ data }: NodeProps<TaskNodeData>) {
+export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
   const { task, onToggleComplete } = data;
 
   return (
@@ -19,6 +19,7 @@ export function TaskNode({ data }: NodeProps<TaskNodeData>) {
         task.completed
           ? "bg-green-50 border-green-400"
           : "bg-white border-gray-300 hover:border-blue-400",
+        selected && "ring-4 ring-blue-500/30 border-blue-600",
       )}
     >
       <Handle
