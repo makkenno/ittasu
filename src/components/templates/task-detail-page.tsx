@@ -20,6 +20,7 @@ export function TaskDetailPage() {
   const goToParent = useTaskStore((state) => state.goToParent);
   const goToNextTask = useTaskStore((state) => state.goToNextTask);
   const addChildTask = useTaskStore((state) => state.addChildTask);
+  const addTemplate = useTaskStore((state) => state.addTemplate);
   const addEdge = useTaskStore((state) => state.addEdge);
   const removeEdge = useTaskStore((state) => state.removeEdge);
   const removeTask = useTaskStore((state) => state.removeTask);
@@ -85,6 +86,20 @@ export function TaskDetailPage() {
   const handleAddTask = (position?: { x: number; y: number }) => {
     setShouldAutoFocus(true);
     addChildTask(position);
+  };
+
+  const handleAddTemplate = (
+    template: {
+      tasks: {
+        title: string;
+        memo?: string;
+        position: { x: number; y: number };
+      }[];
+      edges: { sourceIndex: number; targetIndex: number }[];
+    },
+  ) => {
+    setShouldAutoFocus(false); // 複数追加時はフォーカスしない
+    addTemplate(template);
   };
 
   const handleMemoChange = (newMemo: string) => {
@@ -184,6 +199,7 @@ export function TaskDetailPage() {
             onToggleComplete={handleToggleCompleteNode}
             onTitleChange={handleNodeTitleChange}
             onAddTask={handleAddTask}
+            onAddTemplate={handleAddTemplate}
             onAddEdge={addEdge}
             onRemoveEdge={removeEdge}
             onRemoveTask={removeTask}
@@ -208,6 +224,7 @@ export function TaskDetailPage() {
                 onToggleComplete={handleToggleCompleteNode}
                 onTitleChange={handleNodeTitleChange}
                 onAddTask={handleAddTask}
+                onAddTemplate={handleAddTemplate}
                 onAddEdge={addEdge}
                 onRemoveEdge={removeEdge}
                 onRemoveTask={removeTask}

@@ -35,6 +35,17 @@ interface TaskStore {
 
   addChildTask: (position?: { x: number; y: number }) => void;
 
+  addTemplate: (
+    template: {
+      tasks: {
+        title: string;
+        memo?: string;
+        position: { x: number; y: number };
+      }[];
+      edges: { sourceIndex: number; targetIndex: number }[];
+    },
+  ) => void;
+
   addEdge: (source: string, target: string) => void;
 
   removeEdge: (edgeId: string) => void;
@@ -144,6 +155,53 @@ export const useTaskStore = create<TaskStore>()(
         set((state) => ({
           selectedTaskId: newTaskId,
           nodes: [...state.nodes, newTask],
+        }));
+      },
+
+      addTemplate: (
+        template: {
+          tasks: {
+            title: string;
+            memo?: string;
+            position: { x: number; y: number };
+          }[];
+          edges: { sourceIndex: number; targetIndex: number }[];
+        },
+      ) => {
+        const { currentTaskId } = get();
+        const now = Date.now();
+
+        const newTasks: TaskNode[] = template.tasks.map((task, index) => ({
+          id: `task-${now}-${index}`,
+          title: task.title,
+          memo: task.memo || "",
+          completed: false,
+          parentId: currentTaskId,
+          position: task.position,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          completedAt: null,
+        }));
+
+        const newEdges: TaskEdge[] = template.edges
+          .map((edge, index) => {
+            const sourceTask = newTasks[edge.sourceIndex];
+            const targetTask = newTasks[edge.targetIndex];
+
+            if (!sourceTask || !targetTask) return null;
+
+            return {
+              id: `edge-${now}-${index}`,
+              source: sourceTask.id,
+              target: targetTask.id,
+              parentId: currentTaskId,
+            };
+          })
+          .filter((edge): edge is TaskEdge => edge !== null);
+
+        set((state) => ({
+          nodes: [...state.nodes, ...newTasks],
+          edges: [...state.edges, ...newEdges],
         }));
       },
 

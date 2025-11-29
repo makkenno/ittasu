@@ -1,4 +1,4 @@
-import { Plus, Upload } from "lucide-react";
+import { LayoutTemplate, Plus, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
@@ -18,6 +18,8 @@ import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { ImportDialog } from "../molecules/graph/import-dialog";
 import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
+import { TemplateDialog } from "../molecules/graph/template-dialog";
+import type { TaskTemplate } from "../../types/template";
 import { useGraphHandlers } from "./graph/hooks/use-graph-handlers";
 import { useKeyboardShortcuts } from "./graph/hooks/use-keyboard-shortcuts";
 
@@ -31,6 +33,16 @@ interface GraphAreaProps {
   onToggleComplete?: (taskId: string) => void;
   onTitleChange?: (taskId: string, newTitle: string) => void;
   onAddTask?: (position?: { x: number; y: number }) => void;
+  onAddTemplate?: (
+    template: {
+      tasks: {
+        title: string;
+        memo?: string;
+        position: { x: number; y: number };
+      }[];
+      edges: { sourceIndex: number; targetIndex: number }[];
+    },
+  ) => void;
   onAddEdge?: (source: string, target: string) => void;
   onRemoveEdge?: (edgeId: string) => void;
   onRemoveTask?: (taskId: string) => void;
@@ -51,6 +63,7 @@ export function GraphArea({
   onToggleComplete,
   onTitleChange,
   onAddTask,
+  onAddTemplate,
   onAddEdge,
   onRemoveEdge,
   onRemoveTask,
@@ -66,6 +79,7 @@ export function GraphArea({
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: parentId is used as a trigger
   useEffect(() => {
@@ -199,6 +213,37 @@ export function GraphArea({
     [rfInstance, onAddTask, onPaneClickProp],
   );
 
+  const handleTemplateSelect = useCallback(
+    (template: TaskTemplate) => {
+      if (!rfInstance || !containerRef.current) return;
+
+      const { top, left, width, height } =
+        containerRef.current.getBoundingClientRect();
+
+      // 画面中央のフロー座標を取得
+      const centerPosition = rfInstance.screenToFlowPosition({
+        x: left + width / 2,
+        y: top + height / 2,
+      });
+
+      const tasksToAdd = template.tasks.map((task) => ({
+        title: task.title,
+        memo: task.memo,
+        position: {
+          x: centerPosition.x + task.relativePosition.x - 250, // 中央寄せのための調整 (概算)
+          y: centerPosition.y + task.relativePosition.y,
+        },
+      }));
+
+      onAddTemplate?.({
+        tasks: tasksToAdd,
+        edges: template.edges,
+      });
+      setIsTemplateDialogOpen(false);
+    },
+    [rfInstance, onAddTemplate],
+  );
+
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
       <ReactFlow
@@ -242,6 +287,12 @@ export function GraphArea({
         onImport={(data) => onImportTasks?.(data)}
       />
 
+      <TemplateDialog
+        isOpen={isTemplateDialogOpen}
+        onClose={() => setIsTemplateDialogOpen(false)}
+        onSelect={handleTemplateSelect}
+      />
+
       <div className="absolute top-4 left-4 flex gap-2">
         <button
           type="button"
@@ -264,6 +315,16 @@ export function GraphArea({
       >
         <Plus className="w-5 h-5" />
         <span className="font-medium">タスクを追加</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setIsTemplateDialogOpen(true)}
+        className="absolute bottom-24 right-4 flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-lg hover:bg-gray-50 transition-colors pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+        title="テンプレートから追加"
+      >
+        <LayoutTemplate className="w-5 h-5" />
+        <span className="font-medium">テンプレートから追加</span>
       </button>
     </div>
   );
