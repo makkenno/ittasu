@@ -321,10 +321,10 @@ export function GraphArea({
         type="button"
         onClick={() => setIsTemplateDialogOpen(true)}
         className="absolute bottom-28 sm:bottom-24 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
-        title="テンプレートから追加"
+        title="テンプレート"
       >
         <LayoutTemplate className="w-6 h-6 sm:w-5 sm:h-5" />
-        <span className="font-medium hidden sm:inline">テンプレートから追加</span>
+        <span className="font-medium hidden sm:inline">テンプレート</span>
       </button>
     </div>
   );

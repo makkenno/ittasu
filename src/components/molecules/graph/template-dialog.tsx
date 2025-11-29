@@ -22,7 +22,7 @@ export function TemplateDialog({
           <div className="flex items-center gap-2">
             <LayoutTemplate className="w-5 h-5 text-blue-500" />
             <h2 className="text-xl font-bold text-gray-800">
-              テンプレートから追加
+              テンプレート
             </h2>
           </div>
           <button
