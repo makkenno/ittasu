@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { exportSubgraph } from "../../lib/export-import-utils";
+import {
+  exportSelectedNodes,
+  exportSubgraph,
+} from "../../lib/export-import-utils";
 import { useTaskStore } from "../../stores/task-store";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
@@ -157,6 +160,18 @@ export function TaskDetailPage() {
     }
   };
 
+  const handleExportSelected = async (selectedIds: Set<string>) => {
+    const data = exportSelectedNodes(nodes, edges, selectedIds);
+    const json = JSON.stringify(data, null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      alert("クリップボードにコピーしました");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      alert("コピーに失敗しました");
+    }
+  };
+
   if (showPreview) {
     return (
       <PreviewPage
@@ -204,6 +219,7 @@ export function TaskDetailPage() {
             onPaneClick={handlePaneClick}
             onImportTasks={importSubgraph}
             onExportTask={handleExportTask}
+            onExportSelected={handleExportSelected}
             parentId={currentTaskId}
             shouldAutoFocus={shouldAutoFocus}
           />
@@ -229,6 +245,7 @@ export function TaskDetailPage() {
                 onPaneClick={handlePaneClick}
                 onImportTasks={importSubgraph}
                 onExportTask={handleExportTask}
+                onExportSelected={handleExportSelected}
                 parentId={currentTaskId}
                 shouldAutoFocus={shouldAutoFocus}
               />

@@ -62,6 +62,34 @@ export const exportSubgraph = (
   };
 };
 
+export const exportSelectedNodes = (
+  nodes: TaskNode[],
+  edges: TaskEdge[],
+  selectedNodeIds: Set<string>,
+): ExportedData => {
+  const nodesToExportSet = new Set<string>();
+
+  for (const id of selectedNodeIds) {
+    nodesToExportSet.add(id);
+    const descendants = getDescendantIds(nodes, id);
+    for (const descendantId of descendants) {
+      nodesToExportSet.add(descendantId);
+    }
+  }
+
+  const nodesToExport = nodes.filter((node) => nodesToExportSet.has(node.id));
+  const edgesToExport = edges.filter(
+    (edge) =>
+      nodesToExportSet.has(edge.source) && nodesToExportSet.has(edge.target),
+  );
+
+  return {
+    version: 1,
+    nodes: nodesToExport,
+    edges: edgesToExport,
+  };
+};
+
 export const generateImportedData = (
   data: ExportedData,
   targetParentId: string | null,

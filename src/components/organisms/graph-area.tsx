@@ -50,7 +50,8 @@ interface GraphAreaProps {
   onPaneClick?: () => void;
   onImportTasks?: (data: ExportedData) => void;
   onExportTask?: (taskId: string) => void;
-  parentId: string | null;
+  onExportSelected?: (selectedIds: Set<string>) => void;
+  parentId?: string | null;
   shouldAutoFocus?: boolean;
 }
 
@@ -71,7 +72,8 @@ export function GraphArea({
   onPaneClick: onPaneClickProp,
   onImportTasks,
   onExportTask,
-  parentId,
+  onExportSelected,
+  parentId = null,
   shouldAutoFocus = false,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
@@ -301,6 +303,11 @@ export function GraphArea({
     send({ type: "DELETE_SELECTED" });
   }, [selectedNodeIds, onRemoveTask, send]);
 
+  const handleExportSelected = useCallback(() => {
+    if (selectedNodeIds.size === 0) return;
+    onExportSelected?.(selectedNodeIds);
+  }, [selectedNodeIds, onExportSelected]);
+
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
       <ReactFlow
@@ -401,17 +408,30 @@ export function GraphArea({
       </div>
 
       {isSelectionMode && selectedNodeIds.size > 0 && (
-        <button
-          type="button"
-          onClick={handleDeleteSelected}
-          className="absolute bottom-12 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white text-red-600 border border-gray-300 rounded-full sm:rounded-lg shadow-lg hover:bg-red-50 transition-colors pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50"
-          title="選択したタスクを削除"
-        >
-          <Trash2 className="w-6 h-6 sm:w-5 sm:h-5" />
-          <span className="font-medium hidden sm:inline">
-            削除 ({selectedNodeIds.size})
-          </span>
-        </button>
+        <div className="absolute bottom-12 right-4 flex flex-col gap-2 z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))] items-end">
+          <button
+            type="button"
+            onClick={handleExportSelected}
+            className="flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white text-gray-700 border border-gray-300 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
+            title="選択したタスクをエクスポート"
+          >
+            <Upload className="w-6 h-6 sm:w-5 sm:h-5 rotate-180" />
+            <span className="font-medium hidden sm:inline">
+              エクスポート ({selectedNodeIds.size})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteSelected}
+            className="flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white text-red-600 border border-gray-300 rounded-full sm:rounded-lg shadow-lg hover:bg-red-50 transition-colors"
+            title="選択したタスクを削除"
+          >
+            <Trash2 className="w-6 h-6 sm:w-5 sm:h-5" />
+            <span className="font-medium hidden sm:inline">
+              削除 ({selectedNodeIds.size})
+            </span>
+          </button>
+        </div>
       )}
 
       {!isSelectionMode && (
