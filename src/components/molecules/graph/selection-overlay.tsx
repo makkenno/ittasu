@@ -31,6 +31,7 @@ export function SelectionOverlay({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  const autoPanRequestId = useRef<number | undefined>(undefined);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
@@ -58,8 +59,6 @@ export function SelectionOverlay({
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!isSelecting || !selectionBox) return;
-      // e.preventDefault(); // Prevent text selection etc.
-      // e.stopPropagation(); // Stop event from propagating to ReactFlow
 
       const container = containerRef.current;
       if (!container) return;
@@ -71,60 +70,105 @@ export function SelectionOverlay({
       setSelectionBox((prev) =>
         prev ? { ...prev, currentX: x, currentY: y } : null,
       );
+
+      // Auto-panning logic
+      const edgeThreshold = 50;
+      const panSpeed = 5;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+      const { innerWidth, innerHeight } = window;
+
+      const panX =
+        clientX < edgeThreshold
+          ? panSpeed
+          : clientX > innerWidth - edgeThreshold
+            ? -panSpeed
+            : 0;
+      const panY =
+        clientY < edgeThreshold
+          ? panSpeed
+          : clientY > innerHeight - edgeThreshold
+            ? -panSpeed
+            : 0;
+
+      if (panX !== 0 || panY !== 0) {
+        if (!autoPanRequestId.current) {
+          const loop = () => {
+            const { x: viewportX, y: viewportY, zoom } = rfInstance.getViewport();
+            rfInstance.setViewport({
+              x: viewportX + panX,
+              y: viewportY + panY,
+              zoom,
+            });
+            autoPanRequestId.current = requestAnimationFrame(loop);
+          };
+          loop();
+        }
+      } else {
+        if (autoPanRequestId.current) {
+          cancelAnimationFrame(autoPanRequestId.current);
+          autoPanRequestId.current = undefined;
+        }
+      }
     },
-    [isSelecting, selectionBox],
+    [isSelecting, selectionBox, rfInstance],
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
+      if (autoPanRequestId.current) {
+        cancelAnimationFrame(autoPanRequestId.current);
+        autoPanRequestId.current = undefined;
+      }
+
       if (!isSelecting || !selectionBox || !startPosRef.current) return;
 
       const container = containerRef.current;
       if (container) {
         container.releasePointerCapture(e.pointerId);
-        
+
         const rect = container.getBoundingClientRect();
         const endX = e.clientX - rect.left;
         const endY = e.clientY - rect.top;
-        
+
         const dist = Math.sqrt(
-            Math.pow(endX - startPosRef.current.x, 2) + 
-            Math.pow(endY - startPosRef.current.y, 2)
+          Math.pow(endX - startPosRef.current.x, 2) +
+            Math.pow(endY - startPosRef.current.y, 2),
         );
 
         // クリック判定 (移動距離が小さい場合)
         if (dist < 5) {
-            e.preventDefault();
-            e.stopPropagation();
-            // クリック位置にあるノードを探す
-            // 画面座標からフロー座標へ変換
-            const flowPos = rfInstance.screenToFlowPosition({
-                x: e.clientX,
-                y: e.clientY
-            });
+          e.preventDefault();
+          e.stopPropagation();
+          // クリック位置にあるノードを探す
+          // 画面座標からフロー座標へ変換
+          const flowPos = rfInstance.screenToFlowPosition({
+            x: e.clientX,
+            y: e.clientY,
+          });
 
-            const clickedNode = nodes.find(node => {
-                const nodeWidth = node.width ?? 150;
-                const nodeHeight = node.height ?? 80;
-                
-                return (
-                    flowPos.x >= node.position.x &&
-                    flowPos.x <= node.position.x + nodeWidth &&
-                    flowPos.y >= node.position.y &&
-                    flowPos.y <= node.position.y + nodeHeight
-                );
-            });
+          const clickedNode = nodes.find((node) => {
+            const nodeWidth = node.width ?? 150;
+            const nodeHeight = node.height ?? 80;
 
-            if (clickedNode) {
-                onNodeClick?.(clickedNode.id);
-            } else {
-                onPaneClick?.();
-            }
-            
-            setSelectionBox(null);
-            setIsSelecting(false);
-            startPosRef.current = null;
-            return;
+            return (
+              flowPos.x >= node.position.x &&
+              flowPos.x <= node.position.x + nodeWidth &&
+              flowPos.y >= node.position.y &&
+              flowPos.y <= node.position.y + nodeHeight
+            );
+          });
+
+          if (clickedNode) {
+            onNodeClick?.(clickedNode.id);
+          } else {
+            onPaneClick?.();
+          }
+
+          setSelectionBox(null);
+          setIsSelecting(false);
+          startPosRef.current = null;
+          return;
         }
       }
 
@@ -184,7 +228,15 @@ export function SelectionOverlay({
       setIsSelecting(false);
       startPosRef.current = null;
     },
-    [isSelecting, selectionBox, rfInstance, nodes, onSelectionChange, onNodeClick, onPaneClick],
+    [
+      isSelecting,
+      selectionBox,
+      rfInstance,
+      nodes,
+      onSelectionChange,
+      onNodeClick,
+      onPaneClick,
+    ],
   );
 
   // 選択ボックスのスタイル計算
