@@ -459,7 +459,7 @@ export function GraphArea({
       </div>
 
       {isSelectionMode && selectedNodeIds.size > 0 && (
-        <div className="absolute bottom-12 right-4 flex flex-col gap-2 z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))] items-end">
+        <div className="absolute bottom-12 right-4 flex flex-col gap-2 z-50 items-end">
           <button
             type="button"
             onClick={handleExportSelected}
@@ -501,7 +501,7 @@ export function GraphArea({
           <button
             type="button"
             onClick={handleAddTaskAtViewCenter}
-            className="absolute bottom-12 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-full sm:rounded-lg shadow-lg hover:bg-blue-600 transition-colors pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+            className="absolute bottom-12 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-full sm:rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
             title="新しいタスクを追加"
           >
             <Plus className="w-6 h-6 sm:w-5 sm:h-5" />
@@ -511,7 +511,7 @@ export function GraphArea({
           <button
             type="button"
             onClick={() => setIsTemplateDialogOpen(true)}
-            className="absolute bottom-28 sm:bottom-24 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+            className="absolute bottom-28 sm:bottom-24 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
             title="テンプレート"
           >
             <LayoutTemplate className="w-6 h-6 sm:w-5 sm:h-5" />
