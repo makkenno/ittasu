@@ -71,7 +71,7 @@ export function TemplateDialog({
                 <button
                   type="button"
                   onClick={(e) => handleDeleteClick(e, template.id)}
-                  className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                  className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 transition-colors"
                   title="テンプレートを削除"
                 >
                   <Trash2 className="w-4 h-4" />
