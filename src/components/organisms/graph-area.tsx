@@ -19,6 +19,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { ExportedData } from "../../lib/export-import-utils";
+import { findFreePosition } from "../../lib/graph-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import type { TaskTemplate, TemplateTask } from "../../types/template";
@@ -98,12 +99,19 @@ export function GraphArea({
       const { top, left, width, height } =
         containerRef.current.getBoundingClientRect();
 
-      const position = rfInstance.screenToFlowPosition({
+      const centerPosition = rfInstance.screenToFlowPosition({
         x: left + width / 2,
-        y: top + height / 3,
+        y: top + height / 2,
       });
 
-      onAddTask?.(position);
+      const existingNodes = rfInstance.getNodes();
+      const newPosition = findFreePosition(centerPosition, existingNodes);
+
+      onAddTask?.(newPosition);
+
+      // Pan to the new position
+      const zoom = rfInstance.getZoom();
+      rfInstance.setCenter(newPosition.x, newPosition.y, { zoom, duration: 800 });
     } else {
       onAddTask?.();
     }
