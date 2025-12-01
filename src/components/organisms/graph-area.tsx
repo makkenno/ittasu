@@ -138,13 +138,15 @@ export function GraphArea({
         id: task.id,
         type: "taskNode",
         position: task.position,
-        selected: selectedNodeIds.has(task.id),
+        selected:
+          selectedNodeIds.has(task.id) ||
+          (!isSelectionMode && selectedTask?.id === task.id),
         data: {
           task,
           onToggleComplete,
         },
       })),
-    [taskNodes, onToggleComplete, selectedNodeIds],
+    [taskNodes, onToggleComplete, selectedNodeIds, isSelectionMode, selectedTask],
   );
 
   const {
