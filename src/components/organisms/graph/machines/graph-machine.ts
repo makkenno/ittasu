@@ -12,7 +12,8 @@ type GraphEvent =
   | { type: "DELETE_SELECTED" }
   | { type: "NODE_CLICK"; nodeId: string }
   | { type: "PANE_CLICK" }
-  | { type: "NODE_DOUBLE_CLICK"; nodeId: string };
+  | { type: "NODE_DOUBLE_CLICK"; nodeId: string }
+  | { type: "ADD_TASK" };
 
 export const graphMachine = setup({
   types: {
@@ -64,6 +65,9 @@ export const graphMachine = setup({
     notifyNodeDoubleClick: () => {
       // Implementation provided by component
     },
+    notifyAddTask: () => {
+      // Implementation provided by component
+    },
   },
 }).createMachine({
   id: "graph",
@@ -86,6 +90,9 @@ export const graphMachine = setup({
         },
         NODE_DOUBLE_CLICK: {
           actions: "notifyNodeDoubleClick",
+        },
+        ADD_TASK: {
+          actions: "notifyAddTask",
         },
         SELECT_NODE: {
           // viewingモードでの選択イベントは基本的に無視する。

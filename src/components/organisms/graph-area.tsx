@@ -99,6 +99,24 @@ export function GraphArea({
     null,
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleAddTaskAtViewCenter = useCallback(() => {
+    if (rfInstance && containerRef.current) {
+      const { top, left, width, height } =
+        containerRef.current.getBoundingClientRect();
+
+      const position = rfInstance.screenToFlowPosition({
+        x: left + width / 2,
+        y: top + height / 3,
+      });
+
+      onAddTask?.(position);
+    } else {
+      onAddTask?.();
+    }
+  }, [rfInstance, onAddTask]);
+
   const [state, send] = useMachine(
     graphMachine.provide({
       actions: {
@@ -115,6 +133,7 @@ export function GraphArea({
             onNodeDoubleClick?.(event.nodeId);
           }
         },
+        notifyAddTask: handleAddTaskAtViewCenter,
       },
     }),
   );
@@ -194,8 +213,6 @@ export function GraphArea({
     [taskEdges, onRemoveEdge, selectedEdgeIds],
   );
 
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       send({ type: "NODE_CLICK", nodeId: node.id });
@@ -210,21 +227,7 @@ export function GraphArea({
     [send],
   );
 
-  const handleAddTaskAtViewCenter = useCallback(() => {
-    if (rfInstance && containerRef.current) {
-      const { top, left, width, height } =
-        containerRef.current.getBoundingClientRect();
 
-      const position = rfInstance.screenToFlowPosition({
-        x: left + width / 2,
-        y: top + height / 3,
-      });
-
-      onAddTask?.(position);
-    } else {
-      onAddTask?.();
-    }
-  }, [rfInstance, onAddTask]);
 
   useKeyboardShortcuts({
     selectedNodeIds,
@@ -233,7 +236,7 @@ export function GraphArea({
         setDeleteTargetIds(new Set(selectedNodeIds));
       }
     },
-    onAddTask: handleAddTaskAtViewCenter,
+    onAddTask: () => send({ type: "ADD_TASK" }),
     onEscape: () => {
       if (isSelectionMode) {
         send({ type: "TOGGLE_MODE" });
