@@ -13,7 +13,10 @@ type GraphEvent =
   | { type: "NODE_CLICK"; nodeId: string }
   | { type: "PANE_CLICK" }
   | { type: "NODE_DOUBLE_CLICK"; nodeId: string }
-  | { type: "ADD_TASK" };
+  | { type: "ADD_TASK" }
+  | { type: "OPEN_IMPORT" }
+  | { type: "OPEN_TEMPLATE" }
+  | { type: "OPEN_SAVE_TEMPLATE" };
 
 export const graphMachine = setup({
   types: {
@@ -68,6 +71,15 @@ export const graphMachine = setup({
     notifyAddTask: () => {
       // Implementation provided by component
     },
+    openImportDialog: () => {
+      // Implementation provided by component
+    },
+    openTemplateDialog: () => {
+      // Implementation provided by component
+    },
+    openSaveTemplateDialog: () => {
+      // Implementation provided by component
+    },
   },
 }).createMachine({
   id: "graph",
@@ -93,6 +105,12 @@ export const graphMachine = setup({
         },
         ADD_TASK: {
           actions: "notifyAddTask",
+        },
+        OPEN_IMPORT: {
+          actions: "openImportDialog",
+        },
+        OPEN_TEMPLATE: {
+          actions: "openTemplateDialog",
         },
         SELECT_NODE: {
           // viewingモードでの選択イベントは基本的に無視する。
@@ -122,6 +140,9 @@ export const graphMachine = setup({
         },
         DELETE_SELECTED: {
           actions: "clearSelection",
+        },
+        OPEN_SAVE_TEMPLATE: {
+          actions: "openSaveTemplateDialog",
         },
       },
     },

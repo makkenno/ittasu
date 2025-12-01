@@ -134,6 +134,9 @@ export function GraphArea({
           }
         },
         notifyAddTask: handleAddTaskAtViewCenter,
+        openImportDialog: () => setIsImportDialogOpen(true),
+        openTemplateDialog: () => setIsTemplateDialogOpen(true),
+        openSaveTemplateDialog: () => setIsSaveTemplateDialogOpen(true),
       },
     }),
   );
@@ -450,7 +453,7 @@ export function GraphArea({
 
         <button
           type="button"
-          onClick={() => setIsImportDialogOpen(true)}
+          onClick={() => send({ type: "OPEN_IMPORT" })}
           className={`flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 transition-colors ${
             isSelectionMode ? "hidden" : ""
           }`}
@@ -478,7 +481,7 @@ export function GraphArea({
           </button>
           <button
             type="button"
-            onClick={() => setIsSaveTemplateDialogOpen(true)}
+            onClick={() => send({ type: "OPEN_SAVE_TEMPLATE" })}
             className="flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white text-blue-600 border border-gray-300 rounded-full sm:rounded-lg shadow-lg hover:bg-blue-50 transition-colors"
             title="選択したタスクをテンプレートとして保存"
           >
@@ -515,7 +518,7 @@ export function GraphArea({
 
           <button
             type="button"
-            onClick={() => setIsTemplateDialogOpen(true)}
+            onClick={() => send({ type: "OPEN_TEMPLATE" })}
             className="absolute bottom-28 sm:bottom-24 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
             title="テンプレート"
           >
