@@ -2,6 +2,8 @@ import { assign, setup } from "xstate";
 
 type GraphContext = {
   selectedNodeIds: Set<string>;
+  nodesToDelete?: Set<string>;
+  returnMode?: "viewing" | "selecting";
 };
 
 type GraphEvent =
@@ -16,7 +18,11 @@ type GraphEvent =
   | { type: "ADD_TASK" }
   | { type: "OPEN_IMPORT" }
   | { type: "OPEN_TEMPLATE" }
-  | { type: "OPEN_SAVE_TEMPLATE" };
+  | { type: "OPEN_SAVE_TEMPLATE" }
+  | { type: "CLOSE_DIALOG" }
+  | { type: "REQUEST_DELETE"; nodeIds: string[] }
+  | { type: "CONFIRM_DELETE" }
+  | { type: "CANCEL_DELETE" };
 
 export const graphMachine = setup({
   types: {
@@ -59,6 +65,20 @@ export const graphMachine = setup({
     clearSelection: assign({
       selectedNodeIds: () => new Set(),
     }),
+    prepareDeleteViewing: assign({
+      nodesToDelete: ({ event }) =>
+        event.type === "REQUEST_DELETE" ? new Set(event.nodeIds) : undefined,
+      returnMode: "viewing",
+    }),
+    prepareDeleteSelecting: assign({
+      nodesToDelete: ({ event }) =>
+        event.type === "REQUEST_DELETE" ? new Set(event.nodeIds) : undefined,
+      returnMode: "selecting",
+    }),
+    clearNodesToDelete: assign({
+      nodesToDelete: undefined,
+      returnMode: undefined,
+    }),
     notifyNodeClick: () => {
       // Implementation provided by component
     },
@@ -78,6 +98,9 @@ export const graphMachine = setup({
       // Implementation provided by component
     },
     openSaveTemplateDialog: () => {
+      // Implementation provided by component
+    },
+    performDelete: () => {
       // Implementation provided by component
     },
   },
@@ -107,10 +130,14 @@ export const graphMachine = setup({
           actions: "notifyAddTask",
         },
         OPEN_IMPORT: {
-          actions: "openImportDialog",
+          target: "importing",
         },
         OPEN_TEMPLATE: {
-          actions: "openTemplateDialog",
+          target: "templating",
+        },
+        REQUEST_DELETE: {
+          target: "deleting",
+          actions: "prepareDeleteViewing",
         },
         SELECT_NODE: {
           // viewingモードでの選択イベントは基本的に無視する。
@@ -142,8 +169,61 @@ export const graphMachine = setup({
           actions: "clearSelection",
         },
         OPEN_SAVE_TEMPLATE: {
-          actions: "openSaveTemplateDialog",
+          target: "savingTemplate",
         },
+        REQUEST_DELETE: {
+          target: "deleting",
+          actions: "prepareDeleteSelecting",
+        },
+      },
+    },
+    importing: {
+      on: {
+        CLOSE_DIALOG: {
+          target: "viewing",
+        },
+      },
+    },
+    templating: {
+      on: {
+        CLOSE_DIALOG: {
+          target: "viewing",
+        },
+      },
+    },
+    savingTemplate: {
+      on: {
+        CLOSE_DIALOG: {
+          target: "selecting",
+        },
+      },
+    },
+    deleting: {
+      on: {
+        CONFIRM_DELETE: [
+          {
+            target: "viewing",
+            guard: ({ context }) => context.returnMode === "viewing",
+            actions: ["performDelete", "clearNodesToDelete"],
+          },
+          {
+            target: "selecting",
+            guard: ({ context }) => context.returnMode === "selecting",
+            actions: ["performDelete", "clearSelection", "clearNodesToDelete"],
+          },
+        ],
+        CANCEL_DELETE: [
+          {
+            target: "viewing",
+            guard: ({ context }) => context.returnMode === "viewing",
+            actions: "clearNodesToDelete",
+          },
+          {
+            target: "selecting",
+            guard: ({ context }) => context.returnMode === "selecting",
+            actions: "clearNodesToDelete",
+          },
+        ],
       },
     },
   },
