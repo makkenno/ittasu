@@ -5,6 +5,7 @@ import {
   Plus,
   Trash2,
   Upload,
+  AlignJustify,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
@@ -19,7 +20,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import type { ExportedData } from "../../lib/export-import-utils";
-import { findFreePosition } from "../../lib/graph-utils";
+import { findFreePosition, getLayoutedElements } from "../../lib/graph-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import type { TaskTemplate, TemplateTask } from "../../types/template";
@@ -237,6 +238,33 @@ export function GraphArea({
 
 
 
+
+
+  const handleFormat = useCallback(() => {
+    if (!rfInstance) return;
+
+    const nodeDimensions = new Map<string, { width: number; height: number }>();
+    const nodes = rfInstance.getNodes();
+
+    for (const node of nodes) {
+      if (node.width && node.height) {
+        nodeDimensions.set(node.id, { width: node.width, height: node.height });
+      }
+    }
+
+    const layoutedNodes = getLayoutedElements(
+      taskNodes,
+      taskEdges,
+      nodeDimensions,
+    );
+    onTaskNodesChange?.(layoutedNodes);
+
+    // Fit view after layout adjustment
+    setTimeout(() => {
+      rfInstance.fitView({ duration: 800 });
+    }, 50);
+  }, [taskNodes, taskEdges, onTaskNodesChange, rfInstance]);
+
   useKeyboardShortcuts({
     selectedNodeIds,
     onDelete: () => {
@@ -253,6 +281,7 @@ export function GraphArea({
     onToggleSelectionMode: () => {
       send({ type: "TOGGLE_MODE" });
     },
+    onFormat: handleFormat,
   });
 
   const onPaneClick = useCallback(
@@ -349,6 +378,8 @@ export function GraphArea({
     },
     [selectedNodeIds, onSaveTemplate, send],
   );
+
+
 
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
@@ -466,6 +497,20 @@ export function GraphArea({
           <Upload className="w-4 h-4" />
           <span className="text-sm font-medium hidden sm:inline">
             インポート
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleFormat}
+          className={`flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 transition-colors ${
+            isSelectionMode ? "hidden" : ""
+          }`}
+          title="自動整列"
+        >
+          <AlignJustify className="w-4 h-4" />
+          <span className="text-sm font-medium hidden sm:inline">
+            整列
           </span>
         </button>
       </div>

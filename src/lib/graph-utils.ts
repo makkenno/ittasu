@@ -1,3 +1,5 @@
+import dagre from "dagre";
+import type { TaskEdge } from "../types/edge";
 import type { TaskNode } from "../types/task";
 
 export const getDescendantIds = (
@@ -30,7 +32,11 @@ interface Rect {
 
 export const findFreePosition = (
   center: Position,
-  existingNodes: { position: Position; width?: number | null; height?: number | null }[],
+  existingNodes: {
+    position: Position;
+    width?: number | null;
+    height?: number | null;
+  }[],
   nodeWidth = 200,
   nodeHeight = 100,
   spacing = 20,
@@ -77,4 +83,50 @@ export const findFreePosition = (
   }
 
   return center; // Fallback
+};
+
+export const getLayoutedElements = (
+  nodes: TaskNode[],
+  edges: TaskEdge[],
+  nodeDimensions: Map<string, { width: number; height: number }> = new Map(),
+  direction = "LR", // TB (top-bottom) or LR (left-right)
+) => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  const defaultWidth = 250;
+  const defaultHeight = 100;
+
+  dagreGraph.setGraph({ rankdir: direction });
+
+  for (const node of nodes) {
+    const dim = nodeDimensions.get(node.id);
+    dagreGraph.setNode(node.id, {
+      width: dim?.width || defaultWidth,
+      height: dim?.height || defaultHeight,
+    });
+  }
+
+  for (const edge of edges) {
+    dagreGraph.setEdge(edge.source, edge.target);
+  }
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    const dim = nodeDimensions.get(node.id);
+    const width = dim?.width || defaultWidth;
+    const height = dim?.height || defaultHeight;
+
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - width / 2,
+        y: nodeWithPosition.y - height / 2,
+      },
+    };
+  });
+
+  return layoutedNodes;
 };

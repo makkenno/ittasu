@@ -6,6 +6,7 @@ interface UseKeyboardShortcutsProps {
   onAddTask?: () => void;
   onEscape?: () => void;
   onToggleSelectionMode?: () => void;
+  onFormat?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -14,6 +15,7 @@ export function useKeyboardShortcuts({
   onAddTask,
   onEscape,
   onToggleSelectionMode,
+  onFormat,
 }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     const shouldIgnoreEvent = () => {
@@ -59,17 +61,35 @@ export function useKeyboardShortcuts({
       return false;
     };
 
+    const tryHandleFormat = (event: KeyboardEvent) => {
+      if (event.key === "f" || event.key === "F") {
+        if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+          onFormat?.();
+          return true;
+        }
+      }
+      return false;
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (shouldIgnoreEvent()) return;
       if (tryHandleDelete(event)) return;
       if (tryHandleAddTask(event)) return;
       if (tryHandleEscape(event)) return;
-      tryHandleToggleSelectionMode(event);
+      if (tryHandleToggleSelectionMode(event)) return;
+      tryHandleFormat(event);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedNodeIds, onDelete, onAddTask, onEscape, onToggleSelectionMode]);
+  }, [
+    selectedNodeIds,
+    onDelete,
+    onAddTask,
+    onEscape,
+    onToggleSelectionMode,
+    onFormat,
+  ]);
 }
