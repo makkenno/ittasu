@@ -37,6 +37,7 @@ export function useKeyboardShortcuts({
 
     const tryHandleAddTask = (event: KeyboardEvent) => {
       if (event.key === "n" || event.key === "N") {
+        event.preventDefault();
         onAddTask?.();
         return true;
       }
