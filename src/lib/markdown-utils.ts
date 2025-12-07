@@ -39,12 +39,13 @@ const generateTaskMarkdown = (
   level: number,
 ): string => {
   const lines: string[] = [];
-  const heading = "#".repeat(level);
+  const displayLevel = Math.min(level, 6);
+  const heading = "#".repeat(displayLevel);
   lines.push(`${heading} ${task.title}`);
   lines.push("");
 
   if (task.memo) {
-    const headerPrefix = "#".repeat(level);
+    const headerPrefix = "#".repeat(displayLevel);
     const processedMemo = task.memo
       .replace(/^(#+)/g, `${headerPrefix}$1`)
       .replace(/\n(#+)/g, `\n${headerPrefix}$1`);
