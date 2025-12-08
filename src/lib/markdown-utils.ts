@@ -86,3 +86,44 @@ export const generateMarkdown = (
 
   return generateTaskMarkdown(task, nodes, edges, 1);
 };
+
+const slugify = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-\u0080-\uFFFF]+/g, "");
+};
+
+export interface MarkdownHeading {
+  level: number;
+  text: string;
+  id: string;
+}
+
+export class Slugger {
+  private counts = new Map<string, number>();
+
+  slug(text: string): string {
+    let id = slugify(text);
+    const count = this.counts.get(id) || 0;
+
+    // Save the original ID for next time if it matches
+    const originalId = id;
+
+    if (count > 0) {
+      id = `${originalId}-${count}`;
+    }
+
+    // Correct logic:
+    // 1. slugify(text) -> s
+    // 2. if s in map, increment s's count, append count to s.
+    // 3. store s in map.
+
+    this.counts.set(originalId, count + 1);
+    return id;
+  }
+
+  reset() {
+    this.counts.clear();
+  }
+}

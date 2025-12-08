@@ -1,11 +1,11 @@
 import { useMachine } from "@xstate/react";
 import {
+  AlignJustify,
   LayoutTemplate,
   MousePointer2,
   Plus,
   Trash2,
   Upload,
-  AlignJustify,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
@@ -112,7 +112,10 @@ export function GraphArea({
 
       // Pan to the new position
       const zoom = rfInstance.getZoom();
-      rfInstance.setCenter(newPosition.x, newPosition.y, { zoom, duration: 800 });
+      rfInstance.setCenter(newPosition.x, newPosition.y, {
+        zoom,
+        duration: 800,
+      });
     } else {
       onAddTask?.();
     }
@@ -174,7 +177,13 @@ export function GraphArea({
           onToggleComplete,
         },
       })),
-    [taskNodes, onToggleComplete, selectedNodeIds, isSelectionMode, selectedTask],
+    [
+      taskNodes,
+      onToggleComplete,
+      selectedNodeIds,
+      isSelectionMode,
+      selectedTask,
+    ],
   );
 
   const {
@@ -235,10 +244,6 @@ export function GraphArea({
     },
     [send],
   );
-
-
-
-
 
   const handleFormat = useCallback(() => {
     if (!rfInstance) return;
@@ -363,8 +368,6 @@ export function GraphArea({
     send({ type: "REQUEST_DELETE", nodeIds: Array.from(selectedNodeIds) });
   }, [selectedNodeIds, send]);
 
-
-
   const handleExportSelected = useCallback(() => {
     if (selectedNodeIds.size === 0) return;
     onExportSelected?.(selectedNodeIds);
@@ -378,8 +381,6 @@ export function GraphArea({
     },
     [selectedNodeIds, onSaveTemplate, send],
   );
-
-
 
   return (
     <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
@@ -509,9 +510,7 @@ export function GraphArea({
           title="自動整列"
         >
           <AlignJustify className="w-4 h-4" />
-          <span className="text-sm font-medium hidden sm:inline">
-            整列
-          </span>
+          <span className="text-sm font-medium hidden sm:inline">整列</span>
         </button>
       </div>
 

@@ -4,6 +4,7 @@ import type { TaskEdge } from "../../types/edge";
 import type { TaskNode } from "../../types/task";
 import { MarkdownPreview } from "../molecules/memo/markdown-preview";
 import { PreviewHeader } from "../organisms/preview/preview-header";
+import { TableOfContents } from "../organisms/preview/table-of-contents";
 import { TaskPreviewSection } from "../organisms/preview/task-preview-section";
 
 interface PreviewPageProps {
@@ -78,6 +79,8 @@ export function PreviewPage({
     );
   };
 
+  const markdownValue = generateMarkdown(nodes, edges, currentTaskId);
+
   return (
     <div className="flex flex-col h-[100dvh] bg-white">
       <PreviewHeader
@@ -88,13 +91,22 @@ export function PreviewPage({
         copied={copied}
       />
 
-      <div className="flex-1 overflow-y-auto">
-        {mode === "preview" ? (
-          <MarkdownPreview
-            value={generateMarkdown(nodes, edges, currentTaskId)}
-          />
-        ) : (
-          renderTasks()
+      <div className="flex flex-1 overflow-hidden">
+        <div id="preview-scroll-container" className="flex-1 overflow-y-auto">
+          {mode === "preview" ? (
+            <MarkdownPreview
+              value={markdownValue}
+              className="h-auto overflow-visible"
+            />
+          ) : (
+            renderTasks()
+          )}
+        </div>
+
+        {mode === "preview" && (
+          <div className="hidden lg:block w-64 border-l border-gray-200 bg-gray-50/50">
+            <TableOfContents containerId="preview-scroll-container" />
+          </div>
         )}
       </div>
     </div>
