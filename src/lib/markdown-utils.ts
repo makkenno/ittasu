@@ -45,10 +45,15 @@ const generateTaskMarkdown = (
   lines.push("");
 
   if (task.memo) {
-    const headerPrefix = "#".repeat(displayLevel);
+    const processHeader = (match: string, p1: string) => {
+      const currentLevel = p1.length;
+      const totalLevel = Math.min(displayLevel + currentLevel, 6);
+      return (match.startsWith("\n") ? "\n" : "") + "#".repeat(totalLevel);
+    };
+
     const processedMemo = task.memo
-      .replace(/^(#+)/g, `${headerPrefix}$1`)
-      .replace(/\n(#+)/g, `\n${headerPrefix}$1`);
+      .replace(/^(#+)/g, processHeader)
+      .replace(/\n(#+)/g, processHeader);
 
     lines.push(processedMemo);
     lines.push("");
