@@ -264,7 +264,7 @@ export function TaskDetailPage() {
             <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">
               <div className="w-12 h-1 bg-gray-400 rounded-full" />
             </PanelResizeHandle>
-            <Panel defaultSize={40} minSize={20}>
+            <Panel defaultSize={40} minSize={20} collapsible={true}>
               <MemoArea
                 memo={memo}
                 onMemoChange={handleMemoChange}
