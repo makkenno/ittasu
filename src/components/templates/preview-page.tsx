@@ -25,7 +25,7 @@ export function PreviewPage({
   onMemoChange,
 }: PreviewPageProps) {
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState<"preview" | "edit">("preview");
+  const [mode, setMode] = useState<"preview" | "edit" | "split">("preview");
 
   const handleCopy = async () => {
     const markdown = generateMarkdown(nodes, edges, currentTaskId);
@@ -92,21 +92,40 @@ export function PreviewPage({
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <div id="preview-scroll-container" className="flex-1 overflow-y-auto">
-          {mode === "preview" ? (
-            <MarkdownPreview
-              value={markdownValue}
-              className="h-auto overflow-visible"
-            />
-          ) : (
-            renderTasks()
-          )}
-        </div>
+        {mode === "split" ? (
+          <>
+            <div className="flex-1 min-w-0 overflow-y-auto border-r">
+              {renderTasks()}
+            </div>
+            <div id="preview-scroll-container" className="flex-1 min-w-0 overflow-y-auto">
+              <MarkdownPreview
+                value={markdownValue}
+                className="h-auto overflow-visible"
+              />
+            </div>
+            <div className="hidden lg:block w-64 border-l border-gray-200 bg-gray-50/50">
+              <TableOfContents containerId="preview-scroll-container" />
+            </div>
+          </>
+        ) : (
+          <>
+            <div id="preview-scroll-container" className="flex-1 overflow-y-auto">
+              {mode === "preview" ? (
+                <MarkdownPreview
+                  value={markdownValue}
+                  className="h-auto overflow-visible"
+                />
+              ) : (
+                renderTasks()
+              )}
+            </div>
 
-        {mode === "preview" && (
-          <div className="hidden lg:block w-64 border-l border-gray-200 bg-gray-50/50">
-            <TableOfContents containerId="preview-scroll-container" />
-          </div>
+            {mode === "preview" && (
+              <div className="hidden lg:block w-64 border-l border-gray-200 bg-gray-50/50">
+                <TableOfContents containerId="preview-scroll-container" />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

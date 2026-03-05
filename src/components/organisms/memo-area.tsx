@@ -10,7 +10,7 @@ interface MemoAreaProps {
   onCopyMemo?: () => void;
 }
 
-type TabMode = "edit" | "preview";
+type TabMode = "edit" | "preview" | "split";
 
 export function MemoArea({ memo, onMemoChange, onCopyMemo }: MemoAreaProps) {
   const [mode, setMode] = useState<TabMode>("edit");
@@ -33,6 +33,18 @@ export function MemoArea({ memo, onMemoChange, onCopyMemo }: MemoAreaProps) {
           </button>
           <button
             type="button"
+            onClick={() => setMode("split")}
+            className={cn(
+              "px-4 py-2 font-medium transition-colors",
+              mode === "split"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-600 hover:text-gray-800",
+            )}
+          >
+            分割
+          </button>
+          <button
+            type="button"
             onClick={() => setMode("preview")}
             className={cn(
               "px-4 py-2 font-medium transition-colors",
@@ -50,10 +62,21 @@ export function MemoArea({ memo, onMemoChange, onCopyMemo }: MemoAreaProps) {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {mode === "edit" ? (
+        {mode === "edit" && (
           <MarkdownEditor value={memo} onChange={onMemoChange} />
-        ) : (
+        )}
+        {mode === "preview" && (
           <MarkdownPreview value={memo} />
+        )}
+        {mode === "split" && (
+          <div className="flex h-full">
+            <div className="flex-1 min-w-0 border-r">
+              <MarkdownEditor value={memo} onChange={onMemoChange} />
+            </div>
+            <div className="flex-1 min-w-0 overflow-y-auto">
+              <MarkdownPreview value={memo} />
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -1,10 +1,10 @@
-import { ArrowLeft, Check, Copy, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Columns2, Copy, Eye, Pencil } from "lucide-react";
 import { cn } from "../../../lib/utils";
 
 interface PreviewHeaderProps {
   onBack: () => void;
-  mode: "preview" | "edit";
-  onModeChange: (mode: "preview" | "edit") => void;
+  mode: "preview" | "edit" | "split";
+  onModeChange: (mode: "preview" | "edit" | "split") => void;
   onCopy: () => void;
   copied: boolean;
 }
@@ -41,6 +41,19 @@ export function PreviewHeader({
           >
             <Eye className="w-4 h-4" />
             プレビュー
+          </button>
+          <button
+            type="button"
+            onClick={() => onModeChange("split")}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+              mode === "split"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700",
+            )}
+          >
+            <Columns2 className="w-4 h-4" />
+            分割
           </button>
           <button
             type="button"
