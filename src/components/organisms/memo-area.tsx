@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { cn } from "../../lib/utils";
+import { CopyExportPromptButton } from "../molecules/memo/copy-export-prompt-button";
 import { CopyMemoButton } from "../molecules/memo/copy-memo-button";
 import { MarkdownEditor } from "../molecules/memo/markdown-editor";
 import { MarkdownPreview } from "../molecules/memo/markdown-preview";
@@ -8,11 +9,12 @@ interface MemoAreaProps {
   memo: string;
   onMemoChange?: (newMemo: string) => void;
   onCopyMemo?: () => void;
+  onCopyExportPrompt?: () => void;
 }
 
 type TabMode = "edit" | "preview" | "split";
 
-export function MemoArea({ memo, onMemoChange, onCopyMemo }: MemoAreaProps) {
+export function MemoArea({ memo, onMemoChange, onCopyMemo, onCopyExportPrompt }: MemoAreaProps) {
   const [mode, setMode] = useState<TabMode>("edit");
 
   return (
@@ -56,7 +58,8 @@ export function MemoArea({ memo, onMemoChange, onCopyMemo }: MemoAreaProps) {
             プレビュー
           </button>
         </div>
-        <div className="px-2">
+        <div className="flex items-center px-2 gap-1">
+          <CopyExportPromptButton onClick={onCopyExportPrompt} />
           <CopyMemoButton onClick={onCopyMemo} />
         </div>
       </div>

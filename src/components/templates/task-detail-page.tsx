@@ -144,6 +144,63 @@ export function TaskDetailPage() {
     }
   };
 
+  const handleCopyExportPrompt = async () => {
+    if (!currentTaskId) return;
+
+    const task = nodes.find((node) => node.id === currentTaskId);
+    if (!task) return;
+
+    const memoContent = `# ${task.title}\n\n${task.memo}`;
+    const prompt = `以下のメモの内容を読み取り、情報を階層的なツリー構造に整理したうえで、指定のJSONフォーマットに変換してください。タスク管理だけでなく、知識の整理・アイデアの構造化・物事の分類など、あらゆる情報を構造化するために使えるツールです。
+
+## 出力するJSONフォーマット
+\`\`\`json
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "node-1",
+      "title": "ノードのタイトル",
+      "memo": "",
+      "completed": false,
+      "position": { "x": 0, "y": 0 },
+      "parentId": null,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "completedAt": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "node-1",
+      "target": "node-2",
+      "parentId": null
+    }
+  ]
+}
+\`\`\`
+
+## 整理・変換ルール
+- メモの内容から意図・文脈・概念の関係性を読み取り、適切なツリー構造に整理してください（見出しやリストを機械的に変換するのではなく、情報の本質的な構造を考えてください）
+- 階層構造はノードのparentIdで表現してください（トップレベルはnull）
+- edgesは同じ階層（同じparentId）のノード同士を繋ぐものです。sourceとtargetには同階層のノードのidを設定し、parentIdにはその階層を管理する親ノードのidを設定してください（トップレベルならnull）
+- idはユニークな文字列（例: "node-1", "node-2"）を使用してください
+- positionはx: 階層ごとに200ずつ増加、y: 兄弟順に150ずつ増加するよう配置してください
+- 各ノードのmemoには、その項目に関連する詳細情報・背景・補足・注意点などをなるべく詳しく記載してください
+- completedはfalse、createdAt/updatedAtは現在時刻のISO文字列にしてください
+- JSONのみを出力してください（説明文不要）
+
+## 整理するメモ
+
+${memoContent}`;
+    try {
+      await navigator.clipboard.writeText(prompt);
+    } catch (error) {
+      console.error("Failed to copy export prompt:", error);
+    }
+  };
+
   const handlePaneClick = () => {
     selectTask(null);
   };
@@ -269,6 +326,7 @@ export function TaskDetailPage() {
                 memo={memo}
                 onMemoChange={handleMemoChange}
                 onCopyMemo={handleCopyMemo}
+                onCopyExportPrompt={handleCopyExportPrompt}
               />
             </Panel>
           </PanelGroup>
