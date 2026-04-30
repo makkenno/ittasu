@@ -417,8 +417,11 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       goToNextTask: () => {
-        const { nodes, edges } = get();
-        const nextTaskId = findNextTask(nodes, edges);
+        const { nodes, edges, currentTaskId } = get();
+        const currentTask = currentTaskId
+          ? nodes.find((node) => node.id === currentTaskId)
+          : null;
+        const nextTaskId = findNextTask(nodes, edges, currentTaskId);
 
         if (nextTaskId) {
           set({ currentTaskId: nextTaskId, selectedTaskId: null });

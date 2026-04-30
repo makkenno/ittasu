@@ -4,8 +4,9 @@ import type { TaskNode } from "../types/task";
 export const findNextTask = (
   nodes: TaskNode[],
   edges: TaskEdge[],
+  startingParentId: string | null = null,
 ): string | null => {
-  let currentParentId: string | null = null;
+  let currentParentId: string | null = startingParentId;
 
   while (true) {
     const currentLevelTasks = nodes.filter(
