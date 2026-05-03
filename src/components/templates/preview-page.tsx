@@ -97,7 +97,10 @@ export function PreviewPage({
             <div className="flex-1 min-w-0 overflow-y-auto border-r">
               {renderTasks()}
             </div>
-            <div id="preview-scroll-container" className="flex-1 min-w-0 overflow-y-auto">
+            <div
+              id="preview-scroll-container"
+              className="flex-1 min-w-0 overflow-y-auto"
+            >
               <MarkdownPreview
                 value={markdownValue}
                 className="h-auto overflow-visible"
@@ -109,7 +112,10 @@ export function PreviewPage({
           </>
         ) : (
           <>
-            <div id="preview-scroll-container" className="flex-1 overflow-y-auto">
+            <div
+              id="preview-scroll-container"
+              className="flex-1 overflow-y-auto"
+            >
               {mode === "preview" ? (
                 <MarkdownPreview
                   value={markdownValue}

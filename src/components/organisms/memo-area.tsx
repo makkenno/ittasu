@@ -14,7 +14,12 @@ interface MemoAreaProps {
 
 type TabMode = "edit" | "preview" | "split";
 
-export function MemoArea({ memo, onMemoChange, onCopyMemo, onCopyExportPrompt }: MemoAreaProps) {
+export function MemoArea({
+  memo,
+  onMemoChange,
+  onCopyMemo,
+  onCopyExportPrompt,
+}: MemoAreaProps) {
   const [mode, setMode] = useState<TabMode>("edit");
 
   return (
@@ -68,9 +73,7 @@ export function MemoArea({ memo, onMemoChange, onCopyMemo, onCopyExportPrompt }:
         {mode === "edit" && (
           <MarkdownEditor value={memo} onChange={onMemoChange} />
         )}
-        {mode === "preview" && (
-          <MarkdownPreview value={memo} />
-        )}
+        {mode === "preview" && <MarkdownPreview value={memo} />}
         {mode === "split" && (
           <div className="flex h-full">
             <div className="flex-1 min-w-0 border-r">

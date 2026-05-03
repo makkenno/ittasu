@@ -1,5 +1,15 @@
 import type { TaskEdge } from "../types/edge";
+import type { Project } from "../types/project";
 import type { TaskNode } from "../types/task";
+
+export const DEFAULT_PROJECT_ID = "project-default";
+
+export const defaultProject: Project = {
+  id: DEFAULT_PROJECT_ID,
+  name: "デフォルト",
+  createdAt: new Date("2024-01-01"),
+  updatedAt: new Date("2024-01-01"),
+};
 
 export const sampleNodes: TaskNode[] = [
   {
@@ -8,6 +18,7 @@ export const sampleNodes: TaskNode[] = [
     memo: "# プロジェクト企画\n\n- 要件定義\n- スケジュール作成",
     completed: true,
     parentId: null,
+    projectId: DEFAULT_PROJECT_ID,
     position: { x: 100, y: 100 },
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-02"),
@@ -19,6 +30,7 @@ export const sampleNodes: TaskNode[] = [
     memo: "# 設計\n\n- UI設計\n- データベース設計",
     completed: false,
     parentId: null,
+    projectId: DEFAULT_PROJECT_ID,
     position: { x: 300, y: 100 },
     createdAt: new Date("2024-01-03"),
     updatedAt: new Date("2024-01-03"),
@@ -30,6 +42,7 @@ export const sampleNodes: TaskNode[] = [
     memo: "# 実装\n\n```typescript\nconst hello = 'world';\n```",
     completed: false,
     parentId: null,
+    projectId: DEFAULT_PROJECT_ID,
     position: { x: 500, y: 100 },
     createdAt: new Date("2024-01-04"),
     updatedAt: new Date("2024-01-04"),
@@ -41,6 +54,7 @@ export const sampleNodes: TaskNode[] = [
     memo: "# テスト\n\n- ユニットテスト\n- E2Eテスト",
     completed: false,
     parentId: null,
+    projectId: DEFAULT_PROJECT_ID,
     position: { x: 700, y: 100 },
     createdAt: new Date("2024-01-05"),
     updatedAt: new Date("2024-01-05"),
@@ -76,6 +90,7 @@ export const sampleChildNodes: TaskNode[] = [
     memo: "# UI設計\n\nFigmaでモックアップ作成",
     completed: false,
     parentId: "task-2",
+    projectId: null,
     position: { x: 100, y: 100 },
     createdAt: new Date("2024-01-06"),
     updatedAt: new Date("2024-01-06"),
@@ -87,6 +102,7 @@ export const sampleChildNodes: TaskNode[] = [
     memo: "# データベース設計\n\nER図作成",
     completed: false,
     parentId: "task-2",
+    projectId: null,
     position: { x: 400, y: 100 },
     createdAt: new Date("2024-01-07"),
     updatedAt: new Date("2024-01-07"),

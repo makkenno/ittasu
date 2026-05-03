@@ -8,12 +8,15 @@ import {
 import { getDescendantIds } from "../lib/graph-utils";
 import { indexedDBStorage } from "../lib/indexeddb-storage";
 import {
+  DEFAULT_PROJECT_ID,
+  defaultProject,
   sampleChildEdges,
   sampleChildNodes,
   sampleEdges,
   sampleNodes,
 } from "../lib/sample-data";
 import type { TaskEdge } from "../types/edge";
+import type { Project } from "../types/project";
 import type { TaskNode } from "../types/task";
 import type { TaskTemplate, TemplateTask } from "../types/template";
 import { findNextTask } from "./logic";
@@ -22,7 +25,9 @@ interface TaskStore {
   nodes: TaskNode[];
   edges: TaskEdge[];
   templates: TaskTemplate[];
+  projects: Project[];
   currentTaskId: string | null;
+  currentProjectId: string | null;
   selectedTaskId: string | null;
 
   updateTaskTitle: (taskId: string, title: string) => void;
@@ -66,6 +71,14 @@ interface TaskStore {
   selectTask: (taskId: string | null) => void;
 
   importSubgraph: (data: ExportedData) => void;
+
+  addProject: (id: string, name: string) => void;
+
+  renameProject: (projectId: string, name: string) => void;
+
+  deleteProject: (projectId: string) => void;
+
+  setCurrentProjectId: (projectId: string) => void;
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -74,18 +87,25 @@ export const useTaskStore = create<TaskStore>()(
       nodes: [...sampleNodes, ...sampleChildNodes],
       edges: [...sampleEdges, ...sampleChildEdges],
       templates: defaultTemplates,
+      projects: [defaultProject],
       currentTaskId: null,
+      currentProjectId: DEFAULT_PROJECT_ID,
       selectedTaskId: null,
 
       importSubgraph: (data: ExportedData) => {
-        const { currentTaskId } = get();
+        const { currentTaskId, currentProjectId } = get();
         const { nodes: newNodes, edges: newEdges } = generateImportedData(
           data,
           currentTaskId,
         );
 
+        const patchedNodes = newNodes.map((node) => ({
+          ...node,
+          projectId: node.parentId === null ? currentProjectId : null,
+        }));
+
         set((state) => ({
-          nodes: [...state.nodes, ...newNodes],
+          nodes: [...state.nodes, ...patchedNodes],
           edges: [...state.edges, ...newEdges],
         }));
       },
@@ -144,7 +164,7 @@ export const useTaskStore = create<TaskStore>()(
       addChildTask: (
         position: { x: number; y: number } = { x: 100, y: 100 },
       ) => {
-        const { currentTaskId } = get();
+        const { currentTaskId, currentProjectId } = get();
         const newTaskId = `task-${Date.now()}`;
         const newTask: TaskNode = {
           id: newTaskId,
@@ -152,6 +172,7 @@ export const useTaskStore = create<TaskStore>()(
           memo: "",
           completed: false,
           parentId: currentTaskId,
+          projectId: currentTaskId === null ? currentProjectId : null,
           position,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -168,7 +189,7 @@ export const useTaskStore = create<TaskStore>()(
         tasks: (TemplateTask & { position: { x: number; y: number } })[];
         edges: { sourceIndex: number; targetIndex: number }[];
       }) => {
-        const { currentTaskId } = get();
+        const { currentTaskId, currentProjectId } = get();
         const now = Date.now();
         const allNewNodes: TaskNode[] = [];
         const allNewEdges: TaskEdge[] = [];
@@ -186,6 +207,7 @@ export const useTaskStore = create<TaskStore>()(
             memo: task.memo || "",
             completed: false,
             parentId: parentId,
+            projectId: parentId === null ? currentProjectId : null,
             position: task.position,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -269,19 +291,15 @@ export const useTaskStore = create<TaskStore>()(
 
         if (selectedNodes.length === 0) return;
 
-        // Calculate bounding box to normalize positions
         const minX = Math.min(...selectedNodes.map((n) => n.position.x));
         const minY = Math.min(...selectedNodes.map((n) => n.position.y));
 
-        // Helper to recursively build template task tree
         const buildTemplateTask = (node: TaskNode): TemplateTask => {
           const children = nodes.filter((n) => n.parentId === node.id);
           const childEdges = edges.filter((e) => e.parentId === node.id);
 
-          // Map children to TemplateTask
           const templateChildren = children.map(buildTemplateTask);
 
-          // Map edges to indices
           const templateEdges = childEdges
             .map((edge) => {
               const sourceIndex = children.findIndex(
@@ -302,7 +320,7 @@ export const useTaskStore = create<TaskStore>()(
             title: node.title,
             memo: node.memo,
             relativePosition: {
-              x: node.position.x, // For children, this is relative to parent's content area (conceptually)
+              x: node.position.x,
               y: node.position.y,
             },
             children:
@@ -313,7 +331,6 @@ export const useTaskStore = create<TaskStore>()(
 
         const templateTasks: TemplateTask[] = selectedNodes.map((node) => {
           const task = buildTemplateTask(node);
-          // Adjust top-level position to be relative to the group's top-left
           task.relativePosition = {
             x: node.position.x - minX,
             y: node.position.y - minY,
@@ -321,7 +338,6 @@ export const useTaskStore = create<TaskStore>()(
           return task;
         });
 
-        // Edges between top-level selected nodes
         const topLevelEdges = edges
           .filter(
             (edge) =>
@@ -417,11 +433,12 @@ export const useTaskStore = create<TaskStore>()(
       },
 
       goToNextTask: () => {
-        const { nodes, edges, currentTaskId } = get();
-        const currentTask = currentTaskId
-          ? nodes.find((node) => node.id === currentTaskId)
-          : null;
-        const nextTaskId = findNextTask(nodes, edges, currentTaskId);
+        const { nodes, edges, currentTaskId, currentProjectId } = get();
+        // At root level, only traverse tasks belonging to the current project
+        const filteredNodes = nodes.filter(
+          (n) => n.parentId !== null || n.projectId === currentProjectId,
+        );
+        const nextTaskId = findNextTask(filteredNodes, edges, currentTaskId);
 
         if (nextTaskId) {
           set({ currentTaskId: nextTaskId, selectedTaskId: null });
@@ -431,10 +448,89 @@ export const useTaskStore = create<TaskStore>()(
       selectTask: (taskId: string | null) => {
         set({ selectedTaskId: taskId });
       },
+
+      addProject: (id: string, name: string) => {
+        const newProject: Project = {
+          id,
+          name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        set((state) => ({
+          projects: [...state.projects, newProject],
+          currentProjectId: id,
+          currentTaskId: null,
+          selectedTaskId: null,
+        }));
+      },
+
+      renameProject: (projectId: string, name: string) => {
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId ? { ...p, name, updatedAt: new Date() } : p,
+          ),
+        }));
+      },
+
+      deleteProject: (projectId: string) => {
+        const { nodes, projects } = get();
+
+        const idsToDelete = new Set<string>();
+        for (const node of nodes.filter(
+          (n) => n.parentId === null && n.projectId === projectId,
+        )) {
+          for (const id of getDescendantIds(nodes, node.id)) {
+            idsToDelete.add(id);
+          }
+        }
+
+        const remainingProjects = projects.filter((p) => p.id !== projectId);
+
+        set((state) => ({
+          projects: remainingProjects,
+          currentProjectId:
+            state.currentProjectId === projectId
+              ? (remainingProjects[0]?.id ?? null)
+              : state.currentProjectId,
+          currentTaskId:
+            state.currentProjectId === projectId ? null : state.currentTaskId,
+          selectedTaskId:
+            state.currentProjectId === projectId ? null : state.selectedTaskId,
+          nodes: state.nodes.filter((n) => !idsToDelete.has(n.id)),
+          edges: state.edges.filter(
+            (e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target),
+          ),
+        }));
+      },
+
+      setCurrentProjectId: (projectId: string) => {
+        set({
+          currentProjectId: projectId,
+          currentTaskId: null,
+          selectedTaskId: null,
+        });
+      },
     }),
     {
       name: "task-storage",
       storage: createJSONStorage(() => indexedDBStorage),
+      version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as Record<string, unknown>;
+        if (version === 0) {
+          const nodes = (state.nodes as TaskNode[] | undefined) ?? [];
+          return {
+            ...state,
+            projects: [defaultProject],
+            currentProjectId: DEFAULT_PROJECT_ID,
+            nodes: nodes.map((n) => ({
+              ...n,
+              projectId: n.parentId === null ? DEFAULT_PROJECT_ID : null,
+            })),
+          };
+        }
+        return state;
+      },
     },
   ),
 );

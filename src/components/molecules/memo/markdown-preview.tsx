@@ -21,7 +21,9 @@ const getNodeText = (node: React.ReactNode): string => {
     return node.toString();
   if (Array.isArray(node)) return node.map(getNodeText).join("");
   if (typeof node === "object" && node && "props" in node)
-    return getNodeText((node as any).props.children);
+    return getNodeText(
+      (node as { props: { children: React.ReactNode } }).props.children,
+    );
   return "";
 };
 

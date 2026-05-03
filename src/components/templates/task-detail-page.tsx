@@ -10,10 +10,12 @@ import type { TemplateTask } from "../../types/template";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
+import { Sidebar } from "../organisms/sidebar";
 import { PreviewPage } from "./preview-page";
 
 export function TaskDetailPage() {
   const currentTaskId = useTaskStore((state) => state.currentTaskId);
+  const currentProjectId = useTaskStore((state) => state.currentProjectId);
   const nodes = useTaskStore((state) => state.nodes);
   const edges = useTaskStore((state) => state.edges);
   const selectedTaskId = useTaskStore((state) => state.selectedTaskId);
@@ -41,8 +43,18 @@ export function TaskDetailPage() {
   const currentTask = currentTaskId
     ? nodes.find((node) => node.id === currentTaskId)
     : null;
-  const currentNodes = nodes.filter((node) => node.parentId === currentTaskId);
-  const currentEdges = edges.filter((edge) => edge.parentId === currentTaskId);
+  const currentNodes = nodes.filter(
+    (node) =>
+      node.parentId === currentTaskId &&
+      (currentTaskId !== null || node.projectId === currentProjectId),
+  );
+  const currentNodeIds = new Set(currentNodes.map((n) => n.id));
+  const currentEdges = edges.filter(
+    (edge) =>
+      edge.parentId === currentTaskId &&
+      currentNodeIds.has(edge.source) &&
+      currentNodeIds.has(edge.target),
+  );
 
   const isRoot = currentTaskId === null;
   const hasParent = !isRoot;
@@ -252,86 +264,89 @@ ${memoContent}`;
   }
 
   return (
-    <div className="flex flex-col h-[100dvh]">
-      {!isRoot && (
-        <Header
-          title={title}
-          completed={completed}
-          hasParent={hasParent}
-          onTitleChange={handleTitleChange}
-          onToggleComplete={handleToggleComplete}
-          onBackClick={handleBackClick}
-          onNextTaskClick={handleNextTaskClick}
-          onPreviewClick={handlePreviewClick}
-        />
-      )}
-
-      {isRoot ? (
-        <div className="flex-1 min-h-0">
-          <GraphArea
-            nodes={currentNodes}
-            edges={currentEdges}
-            selectedTask={selectedTask}
-            onNodesChange={handleNodesChange}
-            onNodeClick={handleNodeClick}
-            onNodeDoubleClick={handleNodeDoubleClick}
-            onToggleComplete={handleToggleCompleteNode}
-            onTitleChange={handleNodeTitleChange}
-            onAddTask={handleAddTask}
-            onAddTemplate={handleAddTemplate}
-            onAddEdge={addEdge}
-            onRemoveEdge={removeEdge}
-            onRemoveTask={removeTask}
-            onPaneClick={handlePaneClick}
-            onImportTasks={importSubgraph}
-            onExportTask={handleExportTask}
-            onExportSelected={handleExportSelected}
-            onSaveTemplate={handleSaveTemplate}
-            parentId={currentTaskId}
-            shouldAutoFocus={shouldAutoFocus}
+    <div className="flex h-[100dvh]">
+      <Sidebar />
+      <div className="flex flex-col flex-1 min-w-0">
+        {!isRoot && (
+          <Header
+            title={title}
+            completed={completed}
+            hasParent={hasParent}
+            onTitleChange={handleTitleChange}
+            onToggleComplete={handleToggleComplete}
+            onBackClick={handleBackClick}
+            onNextTaskClick={handleNextTaskClick}
+            onPreviewClick={handlePreviewClick}
           />
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0">
-          <PanelGroup direction="vertical">
-            <Panel defaultSize={60} minSize={30}>
-              <GraphArea
-                nodes={currentNodes}
-                edges={currentEdges}
-                selectedTask={selectedTask}
-                onNodesChange={handleNodesChange}
-                onNodeClick={handleNodeClick}
-                onNodeDoubleClick={handleNodeDoubleClick}
-                onToggleComplete={handleToggleCompleteNode}
-                onTitleChange={handleNodeTitleChange}
-                onAddTask={handleAddTask}
-                onAddTemplate={handleAddTemplate}
-                onAddEdge={addEdge}
-                onRemoveEdge={removeEdge}
-                onRemoveTask={removeTask}
-                onPaneClick={handlePaneClick}
-                onImportTasks={importSubgraph}
-                onExportTask={handleExportTask}
-                onExportSelected={handleExportSelected}
-                onSaveTemplate={handleSaveTemplate}
-                parentId={currentTaskId}
-                shouldAutoFocus={shouldAutoFocus}
-              />
-            </Panel>
-            <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">
-              <div className="w-12 h-1 bg-gray-400 rounded-full" />
-            </PanelResizeHandle>
-            <Panel defaultSize={40} minSize={20} collapsible={true}>
-              <MemoArea
-                memo={memo}
-                onMemoChange={handleMemoChange}
-                onCopyMemo={handleCopyMemo}
-                onCopyExportPrompt={handleCopyExportPrompt}
-              />
-            </Panel>
-          </PanelGroup>
-        </div>
-      )}
+        )}
+
+        {isRoot ? (
+          <div className="flex-1 min-h-0">
+            <GraphArea
+              nodes={currentNodes}
+              edges={currentEdges}
+              selectedTask={selectedTask}
+              onNodesChange={handleNodesChange}
+              onNodeClick={handleNodeClick}
+              onNodeDoubleClick={handleNodeDoubleClick}
+              onToggleComplete={handleToggleCompleteNode}
+              onTitleChange={handleNodeTitleChange}
+              onAddTask={handleAddTask}
+              onAddTemplate={handleAddTemplate}
+              onAddEdge={addEdge}
+              onRemoveEdge={removeEdge}
+              onRemoveTask={removeTask}
+              onPaneClick={handlePaneClick}
+              onImportTasks={importSubgraph}
+              onExportTask={handleExportTask}
+              onExportSelected={handleExportSelected}
+              onSaveTemplate={handleSaveTemplate}
+              parentId={currentTaskId}
+              shouldAutoFocus={shouldAutoFocus}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0">
+            <PanelGroup direction="vertical">
+              <Panel defaultSize={60} minSize={30}>
+                <GraphArea
+                  nodes={currentNodes}
+                  edges={currentEdges}
+                  selectedTask={selectedTask}
+                  onNodesChange={handleNodesChange}
+                  onNodeClick={handleNodeClick}
+                  onNodeDoubleClick={handleNodeDoubleClick}
+                  onToggleComplete={handleToggleCompleteNode}
+                  onTitleChange={handleNodeTitleChange}
+                  onAddTask={handleAddTask}
+                  onAddTemplate={handleAddTemplate}
+                  onAddEdge={addEdge}
+                  onRemoveEdge={removeEdge}
+                  onRemoveTask={removeTask}
+                  onPaneClick={handlePaneClick}
+                  onImportTasks={importSubgraph}
+                  onExportTask={handleExportTask}
+                  onExportSelected={handleExportSelected}
+                  onSaveTemplate={handleSaveTemplate}
+                  parentId={currentTaskId}
+                  shouldAutoFocus={shouldAutoFocus}
+                />
+              </Panel>
+              <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">
+                <div className="w-12 h-1 bg-gray-400 rounded-full" />
+              </PanelResizeHandle>
+              <Panel defaultSize={40} minSize={20} collapsible={true}>
+                <MemoArea
+                  memo={memo}
+                  onMemoChange={handleMemoChange}
+                  onCopyMemo={handleCopyMemo}
+                  onCopyExportPrompt={handleCopyExportPrompt}
+                />
+              </Panel>
+            </PanelGroup>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

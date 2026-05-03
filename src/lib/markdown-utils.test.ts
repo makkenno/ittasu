@@ -12,6 +12,7 @@ const createNode = (
   title,
   memo,
   parentId,
+  projectId: null,
   completed: false,
   position: { x: 0, y: 0 },
   createdAt: new Date(),

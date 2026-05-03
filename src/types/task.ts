@@ -4,6 +4,7 @@ export interface TaskNode {
   memo: string;
   completed: boolean;
   parentId: string | null;
+  projectId: string | null;
   position: { x: number; y: number };
   createdAt: Date;
   updatedAt: Date;

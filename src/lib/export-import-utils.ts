@@ -13,6 +13,7 @@ const TaskNodeSchema = v.object({
     y: v.number(),
   }),
   parentId: v.nullable(v.string()),
+  projectId: v.optional(v.nullable(v.string())),
   createdAt: v.pipe(
     v.string(),
     v.transform((input) => new Date(input)),
@@ -103,6 +104,7 @@ export const generateImportedData = (
     return {
       ...node,
       id: newId,
+      projectId: node.projectId ?? null,
       updatedAt: new Date(),
       createdAt: new Date(),
     };

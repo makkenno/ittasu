@@ -12,6 +12,7 @@ const createNode = (
 ): TaskNode => ({
   id,
   parentId,
+  projectId: null,
   completed,
   title: id,
   memo: "",
