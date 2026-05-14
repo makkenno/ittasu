@@ -456,8 +456,21 @@ export const useTaskStore = create<TaskStore>()(
           createdAt: new Date(),
           updatedAt: new Date(),
         };
+        const newTask: TaskNode = {
+          id: `task-${Date.now()}`,
+          title: "",
+          memo: "",
+          completed: false,
+          parentId: null,
+          projectId: id,
+          position: { x: 100, y: 100 },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          completedAt: null,
+        };
         set((state) => ({
           projects: [...state.projects, newProject],
+          nodes: [...state.nodes, newTask],
           currentProjectId: id,
           currentTaskId: null,
           selectedTaskId: null,
