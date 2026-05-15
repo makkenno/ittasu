@@ -1,12 +1,140 @@
-import { ChevronLeft, ChevronRight, Folder, Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Folder,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { type RefObject, useEffect, useRef, useState } from "react";
+import { generateProjectMarkdown } from "../../lib/markdown-utils";
 import { useTaskStore } from "../../stores/task-store";
+import type { Project } from "../../types/project";
 import { ConfirmDialog } from "../molecules/common/confirm-dialog";
+
+interface ProjectListItemProps {
+  project: Project;
+  isActive: boolean;
+  taskCount: number;
+  isEditing: boolean;
+  editingName: string;
+  copied: boolean;
+  canDelete: boolean;
+  inputRef: RefObject<HTMLInputElement>;
+  onSelect: () => void;
+  onStartEdit: () => void;
+  onEditingNameChange: (name: string) => void;
+  onRenameSubmit: () => void;
+  onCancelEdit: () => void;
+  onCopy: () => void;
+  onRequestDelete: () => void;
+}
+
+function ProjectListItem({
+  project,
+  isActive,
+  taskCount,
+  isEditing,
+  editingName,
+  copied,
+  canDelete,
+  inputRef,
+  onSelect,
+  onStartEdit,
+  onEditingNameChange,
+  onRenameSubmit,
+  onCancelEdit,
+  onCopy,
+  onRequestDelete,
+}: ProjectListItemProps) {
+  return (
+    <button
+      type="button"
+      className={`group w-full text-left flex items-center gap-1.5 mx-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+        isActive
+          ? "bg-blue-100 text-blue-700"
+          : "text-gray-600 hover:bg-gray-100"
+      }`}
+      onClick={onSelect}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        onStartEdit();
+      }}
+    >
+      <Folder
+        className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-blue-500" : "text-gray-400"}`}
+      />
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          className="flex-1 text-sm bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
+          value={editingName}
+          onChange={(e) => onEditingNameChange(e.target.value)}
+          onBlur={onRenameSubmit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onRenameSubmit();
+            }
+            if (e.key === "Escape") onCancelEdit();
+          }}
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.target.select()}
+        />
+      ) : (
+        <>
+          <span className="flex-1 text-sm truncate">{project.name}</span>
+          {taskCount > 0 && (
+            <span
+              className={`text-xs flex-shrink-0 ${isActive ? "text-blue-400" : "text-gray-400"}`}
+            >
+              {taskCount}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCopy();
+            }}
+            className={`opacity-0 group-hover:opacity-100 flex-shrink-0 transition-all ${
+              copied
+                ? "text-green-600 opacity-100"
+                : "text-gray-400 hover:text-blue-500"
+            }`}
+            title="マークダウンとしてコピー"
+          >
+            {copied ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestDelete();
+              }}
+              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 flex-shrink-0 transition-all"
+              title="削除"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </>
+      )}
+    </button>
+  );
+}
 
 export function Sidebar() {
   const projects = useTaskStore((s) => s.projects);
   const currentProjectId = useTaskStore((s) => s.currentProjectId);
   const nodes = useTaskStore((s) => s.nodes);
+  const edges = useTaskStore((s) => s.edges);
   const addProject = useTaskStore((s) => s.addProject);
   const renameProject = useTaskStore((s) => s.renameProject);
   const deleteProject = useTaskStore((s) => s.deleteProject);
@@ -16,6 +144,7 @@ export function Sidebar() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,6 +179,19 @@ export function Sidebar() {
     if (deleteTargetId) {
       deleteProject(deleteTargetId);
       setDeleteTargetId(null);
+    }
+  };
+
+  const handleCopyProject = async (projectId: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
+    const markdown = generateProjectMarkdown(project, nodes, edges);
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopiedId(projectId);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy project markdown:", error);
     }
   };
 
@@ -136,75 +278,29 @@ export function Sidebar() {
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-              {projects.map((project) => {
-                const isActive = project.id === currentProjectId;
-                const taskCount = getRootTaskCount(project.id);
-                return (
-                  <button
-                    key={project.id}
-                    type="button"
-                    className={`group w-full text-left flex items-center gap-1.5 mx-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                      isActive
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                    onClick={() => setCurrentProjectId(project.id)}
-                    onDoubleClick={(e) => {
-                      e.preventDefault();
-                      setEditingId(project.id);
-                      setEditingName(project.name);
-                    }}
-                  >
-                    <Folder
-                      className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-blue-500" : "text-gray-400"}`}
-                    />
-                    {editingId === project.id ? (
-                      <input
-                        ref={inputRef}
-                        className="flex-1 text-sm bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onBlur={handleRenameSubmit}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleRenameSubmit();
-                          }
-                          if (e.key === "Escape") setEditingId(null);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        onFocus={(e) => e.target.select()}
-                      />
-                    ) : (
-                      <>
-                        <span className="flex-1 text-sm truncate">
-                          {project.name}
-                        </span>
-                        {taskCount > 0 && (
-                          <span
-                            className={`text-xs flex-shrink-0 ${isActive ? "text-blue-400" : "text-gray-400"}`}
-                          >
-                            {taskCount}
-                          </span>
-                        )}
-                        {projects.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteTargetId(project.id);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 flex-shrink-0 transition-all"
-                            title="削除"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </button>
-                );
-              })}
+              {projects.map((project) => (
+                <ProjectListItem
+                  key={project.id}
+                  project={project}
+                  isActive={project.id === currentProjectId}
+                  taskCount={getRootTaskCount(project.id)}
+                  isEditing={editingId === project.id}
+                  editingName={editingName}
+                  copied={copiedId === project.id}
+                  canDelete={projects.length > 1}
+                  inputRef={inputRef}
+                  onSelect={() => setCurrentProjectId(project.id)}
+                  onStartEdit={() => {
+                    setEditingId(project.id);
+                    setEditingName(project.name);
+                  }}
+                  onEditingNameChange={setEditingName}
+                  onRenameSubmit={handleRenameSubmit}
+                  onCancelEdit={() => setEditingId(null)}
+                  onCopy={() => handleCopyProject(project.id)}
+                  onRequestDelete={() => setDeleteTargetId(project.id)}
+                />
+              ))}
             </>
           )}
         </div>

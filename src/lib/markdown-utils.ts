@@ -1,4 +1,5 @@
 import type { TaskEdge } from "../types/edge";
+import type { Project } from "../types/project";
 import type { TaskNode } from "../types/task";
 
 export const sortByDependencies = (
@@ -90,6 +91,27 @@ export const generateMarkdown = (
   if (!task) return "";
 
   return generateTaskMarkdown(task, nodes, edges, 1);
+};
+
+export const generateProjectMarkdown = (
+  project: Project,
+  nodes: TaskNode[],
+  edges: TaskEdge[],
+): string => {
+  const lines: string[] = [];
+  lines.push(`# ${project.name}`);
+  lines.push("");
+
+  const rootNodes = nodes.filter(
+    (node) => node.parentId === null && node.projectId === project.id,
+  );
+  const sortedRootNodes = sortByDependencies(rootNodes, edges, null);
+
+  for (const rootNode of sortedRootNodes) {
+    lines.push(generateTaskMarkdown(rootNode, nodes, edges, 2));
+  }
+
+  return lines.join("\n");
 };
 
 const slugify = (text: string): string => {
