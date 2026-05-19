@@ -21,7 +21,7 @@ interface ProjectListItemProps {
   editingName: string;
   copied: boolean;
   canDelete: boolean;
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement | null>;
   onSelect: () => void;
   onStartEdit: () => void;
   onEditingNameChange: (name: string) => void;
