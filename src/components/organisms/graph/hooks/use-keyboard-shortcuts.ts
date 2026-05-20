@@ -7,6 +7,7 @@ interface UseKeyboardShortcutsProps {
   onEscape?: () => void;
   onToggleSelectionMode?: () => void;
   onFormat?: () => void;
+  onConnectIsolated?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -16,6 +17,7 @@ export function useKeyboardShortcuts({
   onEscape,
   onToggleSelectionMode,
   onFormat,
+  onConnectIsolated,
 }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     const shouldIgnoreEvent = () => {
@@ -72,13 +74,30 @@ export function useKeyboardShortcuts({
       return false;
     };
 
+    const tryHandleConnectIsolated = (event: KeyboardEvent) => {
+      if (event.key === "c" || event.key === "C") {
+        if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+          onConnectIsolated?.();
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const handlers = [
+      tryHandleDelete,
+      tryHandleAddTask,
+      tryHandleEscape,
+      tryHandleToggleSelectionMode,
+      tryHandleFormat,
+      tryHandleConnectIsolated,
+    ];
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (shouldIgnoreEvent()) return;
-      if (tryHandleDelete(event)) return;
-      if (tryHandleAddTask(event)) return;
-      if (tryHandleEscape(event)) return;
-      if (tryHandleToggleSelectionMode(event)) return;
-      tryHandleFormat(event);
+      for (const handler of handlers) {
+        if (handler(event)) return;
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -92,5 +111,6 @@ export function useKeyboardShortcuts({
     onEscape,
     onToggleSelectionMode,
     onFormat,
+    onConnectIsolated,
   ]);
 }

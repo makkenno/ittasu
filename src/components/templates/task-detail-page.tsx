@@ -30,6 +30,9 @@ export function TaskDetailPage() {
   const addTemplate = useTaskStore((state) => state.addTemplate);
   const saveTemplate = useTaskStore((state) => state.saveTemplate);
   const addEdge = useTaskStore((state) => state.addEdge);
+  const connectIsolatedTasks = useTaskStore(
+    (state) => state.connectIsolatedTasks,
+  );
   const removeEdge = useTaskStore((state) => state.removeEdge);
   const removeTask = useTaskStore((state) => state.removeTask);
   const selectTask = useTaskStore((state) => state.selectTask);
@@ -301,6 +304,7 @@ ${memoContent}`;
               onExportTask={handleExportTask}
               onExportSelected={handleExportSelected}
               onSaveTemplate={handleSaveTemplate}
+              onConnectIsolated={connectIsolatedTasks}
               parentId={currentTaskId}
               shouldAutoFocus={shouldAutoFocus}
             />
@@ -328,6 +332,7 @@ ${memoContent}`;
                   onExportTask={handleExportTask}
                   onExportSelected={handleExportSelected}
                   onSaveTemplate={handleSaveTemplate}
+                  onConnectIsolated={connectIsolatedTasks}
                   parentId={currentTaskId}
                   shouldAutoFocus={shouldAutoFocus}
                 />

@@ -62,6 +62,7 @@ interface GraphAreaProps {
     description: string,
     selectedNodeIds: Set<string>,
   ) => void;
+  onConnectIsolated?: () => void;
   parentId?: string | null;
   shouldAutoFocus?: boolean;
 }
@@ -85,6 +86,7 @@ export function GraphArea({
   onExportTask,
   onExportSelected,
   onSaveTemplate,
+  onConnectIsolated,
   parentId = null,
   shouldAutoFocus = false,
 }: GraphAreaProps) {
@@ -287,6 +289,7 @@ export function GraphArea({
       send({ type: "TOGGLE_MODE" });
     },
     onFormat: handleFormat,
+    onConnectIsolated,
   });
 
   const onPaneClick = useCallback(

@@ -5,7 +5,10 @@ import {
   type ExportedData,
   generateImportedData,
 } from "../lib/export-import-utils";
-import { getDescendantIds } from "../lib/graph-utils";
+import {
+  analyzeConnectionsInScope,
+  getDescendantIds,
+} from "../lib/graph-utils";
 import { indexedDBStorage } from "../lib/indexeddb-storage";
 import {
   DEFAULT_PROJECT_ID,
@@ -57,6 +60,8 @@ interface TaskStore {
   deleteTemplate: (templateId: string) => void;
 
   addEdge: (source: string, target: string) => void;
+
+  connectIsolatedTasks: () => void;
 
   removeEdge: (edgeId: string) => void;
 
@@ -389,6 +394,60 @@ export const useTaskStore = create<TaskStore>()(
 
         set((state) => ({
           edges: [...state.edges, newEdge],
+        }));
+      },
+
+      connectIsolatedTasks: () => {
+        const { nodes, edges, currentTaskId, currentProjectId } = get();
+
+        const currentNodes = nodes.filter(
+          (node) =>
+            node.parentId === currentTaskId &&
+            (currentTaskId !== null || node.projectId === currentProjectId),
+        );
+        if (currentNodes.length < 2) return;
+
+        const { isolated, tails } = analyzeConnectionsInScope(
+          currentNodes,
+          edges,
+          currentTaskId,
+        );
+
+        const sortedIsolated = isolated.sort((a, b) => {
+          if (a.position.x !== b.position.x) {
+            return a.position.x - b.position.x;
+          }
+          return a.position.y - b.position.y;
+        });
+
+        const rightmostTail = tails.sort((a, b) => {
+          if (a.position.x !== b.position.x) {
+            return b.position.x - a.position.x;
+          }
+          return b.position.y - a.position.y;
+        })[0];
+
+        const chain = rightmostTail
+          ? [rightmostTail, ...sortedIsolated]
+          : sortedIsolated;
+        if (chain.length < 2) return;
+
+        const now = Date.now();
+        const newEdges: TaskEdge[] = [];
+        for (let i = 0; i < chain.length - 1; i++) {
+          const source = chain[i];
+          const target = chain[i + 1];
+          if (!source || !target) continue;
+          newEdges.push({
+            id: `edge-${now}-${i}`,
+            source: source.id,
+            target: target.id,
+            parentId: currentTaskId,
+          });
+        }
+
+        set((state) => ({
+          edges: [...state.edges, ...newEdges],
         }));
       },
 

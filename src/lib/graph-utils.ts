@@ -18,6 +18,48 @@ export const getDescendantIds = (
   return descendants;
 };
 
+interface ConnectionStat {
+  incoming: number;
+  outgoing: number;
+}
+
+const computeConnectionStats = (
+  currentNodes: TaskNode[],
+  edges: TaskEdge[],
+  parentId: string | null,
+): Map<string, ConnectionStat> => {
+  const stats = new Map<string, ConnectionStat>();
+  for (const node of currentNodes) {
+    stats.set(node.id, { incoming: 0, outgoing: 0 });
+  }
+  for (const edge of edges) {
+    if (edge.parentId !== parentId) continue;
+    const sourceStat = stats.get(edge.source);
+    const targetStat = stats.get(edge.target);
+    if (!sourceStat || !targetStat) continue;
+    sourceStat.outgoing++;
+    targetStat.incoming++;
+  }
+  return stats;
+};
+
+export const analyzeConnectionsInScope = (
+  currentNodes: TaskNode[],
+  edges: TaskEdge[],
+  parentId: string | null,
+): { isolated: TaskNode[]; tails: TaskNode[] } => {
+  const stats = computeConnectionStats(currentNodes, edges, parentId);
+  const isolated = currentNodes.filter((node) => {
+    const s = stats.get(node.id);
+    return s !== undefined && s.incoming === 0 && s.outgoing === 0;
+  });
+  const tails = currentNodes.filter((node) => {
+    const s = stats.get(node.id);
+    return s !== undefined && s.incoming > 0 && s.outgoing === 0;
+  });
+  return { isolated, tails };
+};
+
 interface Position {
   x: number;
   y: number;
