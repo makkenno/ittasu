@@ -53,6 +53,7 @@ export function TaskDetailPage() {
   const [titleFocusToken, setTitleFocusToken] = useState(0);
   const [memoFocusToken, setMemoFocusToken] = useState(0);
   const [headerTitleEditToken, setHeaderTitleEditToken] = useState(0);
+  const [sidebarToggleToken, setSidebarToggleToken] = useState(0);
   const [focusArea, setFocusArea] = useState<FocusArea>("graph");
   const [showHelp, setShowHelp] = useState(false);
   const memoPanelRef = useRef<ImperativePanelHandle>(null);
@@ -88,6 +89,10 @@ export function TaskDetailPage() {
           const active = document.activeElement;
           if (active instanceof HTMLElement) active.blur();
           setFocusArea((prev) => (prev === "sidebar" ? "graph" : "sidebar"));
+        },
+        "Control+b": (event) => {
+          event.preventDefault();
+          setSidebarToggleToken((n) => n + 1);
         },
       },
       {
@@ -357,6 +362,7 @@ ${memoContent}`;
         focused={focusArea === "sidebar"}
         onFocus={focusSidebar}
         onBlur={focusGraph}
+        collapseToggleToken={sidebarToggleToken}
       />
       <div className="flex flex-col flex-1 min-w-0">
         {!isRoot && (

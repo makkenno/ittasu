@@ -84,6 +84,10 @@ const sections: ShortcutSection[] = [
         combos: [["Ctrl", "E"]],
         description: "サイドバーとグラフのフォーカス切替",
       },
+      {
+        combos: [["Ctrl", "B"]],
+        description: "サイドバーの折りたたみをトグル",
+      },
       { combos: [["j"], ["k"]], description: "プロジェクトを上下に移動" },
       { combos: [["Enter"], ["l"]], description: "プロジェクトを開く" },
       { combos: [["n"]], description: "新しいプロジェクトを作成" },

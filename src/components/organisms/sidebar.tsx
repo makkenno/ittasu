@@ -162,12 +162,14 @@ interface SidebarProps {
   focused?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
+  collapseToggleToken?: number;
 }
 
 export function Sidebar({
   focused = false,
   onFocus,
   onBlur,
+  collapseToggleToken = 0,
 }: SidebarProps = {}) {
   const projects = useTaskStore((s) => s.projects);
   const currentProjectId = useTaskStore((s) => s.currentProjectId);
@@ -194,12 +196,26 @@ export function Sidebar({
     }
   }, [editingId]);
 
+  const prevFocusedRef = useRef(focused);
+  useEffect(() => {
+    const becameFocused = focused && !prevFocusedRef.current;
+    prevFocusedRef.current = focused;
+    if (becameFocused) setCollapsed(false);
+  }, [focused]);
+
+  const lastCollapseTokenRef = useRef(collapseToggleToken);
+  useEffect(() => {
+    if (collapseToggleToken !== lastCollapseTokenRef.current) {
+      setCollapsed((c) => !c);
+    }
+    lastCollapseTokenRef.current = collapseToggleToken;
+  }, [collapseToggleToken]);
+
   useEffect(() => {
     if (!focused) return;
-    if (collapsed) setCollapsed(false);
     const idx = projects.findIndex((p) => p.id === currentProjectId);
     if (idx >= 0) setCursorIndex(idx);
-  }, [focused, projects, currentProjectId, collapsed]);
+  }, [focused, projects, currentProjectId]);
 
   useEffect(() => {
     if (!focused) return;
