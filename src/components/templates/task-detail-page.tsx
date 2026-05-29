@@ -10,6 +10,7 @@ import {
   exportSelectedNodes,
   exportSubgraph,
 } from "../../lib/export-import-utils";
+import { generateMarkdown } from "../../lib/markdown-utils";
 import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import type { TemplateTask } from "../../types/template";
@@ -217,6 +218,18 @@ export function TaskDetailPage() {
     setShowPreview(false);
   };
 
+  const handleCopyCurrentMarkdown = useCallback(async () => {
+    if (!currentTaskId) return;
+    const markdown = generateMarkdown(nodes, edges, currentTaskId);
+    try {
+      await navigator.clipboard.writeText(markdown);
+      addToast("現在のタスクをマークダウンでコピーしました", "success");
+    } catch (error) {
+      console.error("Failed to copy markdown:", error);
+      addToast("コピーに失敗しました", "error");
+    }
+  }, [currentTaskId, nodes, edges, addToast]);
+
   const handleCopyMemo = async () => {
     if (!currentTaskId) return;
 
@@ -422,6 +435,7 @@ ${memoContent}`;
                   onFocusMemo={requestMemoFocus}
                   onToggleMemo={toggleMemoVisible}
                   onEditCurrentTitle={requestHeaderTitleEdit}
+                  onCopyCurrent={handleCopyCurrentMarkdown}
                 />
               </Panel>
               <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">

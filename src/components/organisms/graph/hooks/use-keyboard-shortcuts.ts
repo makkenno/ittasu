@@ -34,6 +34,10 @@ interface UseKeyboardShortcutsProps {
   selectionMode?: boolean;
   onExtendSelection?: (taskId: string) => void;
   onConnectFromSelected?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onFitView?: () => void;
+  onOpenSearch?: () => void;
 }
 
 type Movable =
@@ -131,6 +135,10 @@ export function useKeyboardShortcuts({
   selectionMode = false,
   onExtendSelection,
   onConnectFromSelected,
+  onZoomIn,
+  onZoomOut,
+  onFitView,
+  onOpenSearch,
 }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     if (!enabled) return;
@@ -240,6 +248,10 @@ export function useKeyboardShortcuts({
       p: handle(() => onPaste?.()),
       m: handle(() => onFocusMemo?.()),
       "Shift+m": handle(() => onToggleMemo?.()),
+      "Shift+>": handle(() => onZoomIn?.()),
+      "Shift+<": handle(() => onZoomOut?.()),
+      "0": handle(() => onFitView?.()),
+      "/": handle(() => onOpenSearch?.()),
     });
   }, [
     enabled,
@@ -271,5 +283,9 @@ export function useKeyboardShortcuts({
     selectionMode,
     onExtendSelection,
     onConnectFromSelected,
+    onZoomIn,
+    onZoomOut,
+    onFitView,
+    onOpenSearch,
   ]);
 }

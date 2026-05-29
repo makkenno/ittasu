@@ -41,6 +41,7 @@ import { SaveTemplateDialog } from "../molecules/graph/save-template-dialog";
 import { SelectionOverlay } from "../molecules/graph/selection-overlay";
 import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
+import { TaskSearchDialog } from "../molecules/graph/task-search-dialog";
 import { TemplateDialog } from "../molecules/graph/template-dialog";
 import { useGraphHandlers } from "./graph/hooks/use-graph-handlers";
 import { useKeyboardShortcuts } from "./graph/hooks/use-keyboard-shortcuts";
@@ -85,6 +86,7 @@ interface GraphAreaProps {
   onFocusMemo?: () => void;
   onToggleMemo?: () => void;
   onEditCurrentTitle?: () => void;
+  onCopyCurrent?: () => void;
 }
 
 export function GraphArea({
@@ -116,10 +118,12 @@ export function GraphArea({
   onFocusMemo,
   onToggleMemo,
   onEditCurrentTitle,
+  onCopyCurrent,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [edgeSourceId, setEdgeSourceId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
@@ -306,7 +310,9 @@ export function GraphArea({
       } catch {
         addToast("コピーに失敗しました", "error");
       }
+      return;
     }
+    onCopyCurrent?.();
   }, [
     isSelectionMode,
     selectedNodeIds,
@@ -314,6 +320,7 @@ export function GraphArea({
     taskEdges,
     selectedTask,
     addToast,
+    onCopyCurrent,
   ]);
 
   const handlePasteImport = useCallback(async () => {
@@ -548,6 +555,10 @@ export function GraphArea({
     selectionMode: isSelectionMode,
     onExtendSelection: (id) => send({ type: "SET_SELECTION", nodeIds: [id] }),
     onConnectFromSelected: handleConnectFromSelected,
+    onZoomIn: () => rfInstance?.zoomIn({ duration: 200 }),
+    onZoomOut: () => rfInstance?.zoomOut({ duration: 200 }),
+    onFitView: () => rfInstance?.fitView({ duration: 400 }),
+    onOpenSearch: () => setSearchOpen(true),
   });
 
   const onPaneClick = useCallback(
@@ -720,6 +731,13 @@ export function GraphArea({
         isOpen={state.matches("savingTemplate")}
         onClose={() => send({ type: "CLOSE_DIALOG" })}
         onSave={handleSaveTemplate}
+      />
+
+      <TaskSearchDialog
+        isOpen={searchOpen}
+        nodes={taskNodes}
+        onClose={() => setSearchOpen(false)}
+        onSelect={(taskId) => handleSelectTaskFromKey(taskId)}
       />
 
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-50">

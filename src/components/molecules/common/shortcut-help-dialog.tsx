@@ -56,6 +56,10 @@ const sections: ShortcutSection[] = [
         description: "選択モード切替（中で hjkl 移動すると選択が拡張）",
       },
       { combos: [["f"]], description: "自動整列" },
+      { combos: [["/"]], description: "タスク名で検索してジャンプ" },
+      { combos: [[">"]], description: "ズームイン" },
+      { combos: [["<"]], description: "ズームアウト" },
+      { combos: [["0"]], description: "ビューをフィット" },
       { combos: [["c"]], description: "孤立したタスクを接続" },
       { combos: [["y"]], description: "ノードをクリップボードへコピー" },
       {
