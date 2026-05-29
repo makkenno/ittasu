@@ -133,7 +133,6 @@ export function TaskSearchDialog({
                     onSelect(task.id);
                     onClose();
                   }}
-                  onMouseEnter={() => setCursor(index)}
                   className="flex-1 text-left truncate"
                 >
                   {task.title || "（無題）"}
