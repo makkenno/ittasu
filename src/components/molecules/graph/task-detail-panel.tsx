@@ -1,6 +1,8 @@
 import { ChevronRight, Copy, Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Panel } from "reactflow";
+import { isEscapeKey } from "../../../lib/keyboard";
+import { useEditSession } from "../../../stores/use-edit-session";
 import type { TaskNode } from "../../../types/task";
 
 interface TaskDetailPanelProps {
@@ -9,7 +11,7 @@ interface TaskDetailPanelProps {
   onDetailClick?: (taskId: string) => void;
   onDeleteClick?: (taskId: string) => void;
   onExportClick?: (taskId: string) => void;
-  autoFocus?: boolean;
+  titleFocusToken?: number;
 }
 
 export function TaskDetailPanel({
@@ -18,16 +20,19 @@ export function TaskDetailPanel({
   onDetailClick,
   onDeleteClick,
   onExportClick,
-  autoFocus = false,
+  titleFocusToken = 0,
 }: TaskDetailPanelProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const lastTokenRef = useRef(titleFocusToken);
+  const { handleFocus, handleBlur } = useEditSession();
 
   useEffect(() => {
-    if (selectedTask?.id && titleInputRef.current && autoFocus) {
+    if (titleFocusToken !== lastTokenRef.current && titleInputRef.current) {
       titleInputRef.current.focus();
       titleInputRef.current.select();
     }
-  }, [selectedTask?.id, autoFocus]);
+    lastTokenRef.current = titleFocusToken;
+  }, [titleFocusToken]);
 
   const handleDeleteClick = () => {
     onDeleteClick?.(selectedTask.id);
@@ -52,6 +57,15 @@ export function TaskDetailPanel({
             ref={titleInputRef}
             value={selectedTask.title}
             onChange={(e) => onTitleChange?.(selectedTask.id, e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return;
+              if (isEscapeKey(e) || e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
             className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

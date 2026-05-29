@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 import { CopyExportPromptButton } from "../molecules/memo/copy-export-prompt-button";
 import { CopyMemoButton } from "../molecules/memo/copy-memo-button";
@@ -10,6 +10,7 @@ interface MemoAreaProps {
   onMemoChange?: (newMemo: string) => void;
   onCopyMemo?: () => void;
   onCopyExportPrompt?: () => void;
+  focusToken?: number;
 }
 
 type TabMode = "edit" | "preview" | "split";
@@ -19,8 +20,17 @@ export function MemoArea({
   onMemoChange,
   onCopyMemo,
   onCopyExportPrompt,
+  focusToken = 0,
 }: MemoAreaProps) {
   const [mode, setMode] = useState<TabMode>("edit");
+  const lastFocusTokenRef = useRef(focusToken);
+
+  useEffect(() => {
+    if (focusToken !== lastFocusTokenRef.current && mode === "preview") {
+      setMode("edit");
+    }
+    lastFocusTokenRef.current = focusToken;
+  }, [focusToken, mode]);
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -71,13 +81,21 @@ export function MemoArea({
 
       <div className="flex-1 overflow-hidden">
         {mode === "edit" && (
-          <MarkdownEditor value={memo} onChange={onMemoChange} />
+          <MarkdownEditor
+            value={memo}
+            onChange={onMemoChange}
+            focusToken={focusToken}
+          />
         )}
         {mode === "preview" && <MarkdownPreview value={memo} />}
         {mode === "split" && (
           <div className="flex h-full">
             <div className="flex-1 min-w-0 border-r">
-              <MarkdownEditor value={memo} onChange={onMemoChange} />
+              <MarkdownEditor
+                value={memo}
+                onChange={onMemoChange}
+                focusToken={focusToken}
+              />
             </div>
             <div className="flex-1 min-w-0 overflow-y-auto">
               <MarkdownPreview value={memo} />

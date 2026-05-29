@@ -19,12 +19,22 @@ import ReactFlow, {
   SelectionMode,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import type { ExportedData } from "../../lib/export-import-utils";
-import { findFreePosition, getLayoutedElements } from "../../lib/graph-utils";
+import {
+  type ExportedData,
+  exportSelectedNodes,
+  exportSubgraph,
+} from "../../lib/export-import-utils";
+import {
+  findEndNode,
+  findFreePosition,
+  findNextSelectionAfterDelete,
+  findPredecessors,
+  getLayoutedElements,
+} from "../../lib/graph-utils";
+import { useToastStore } from "../../stores/toast-store";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
 import type { TaskTemplate, TemplateTask } from "../../types/template";
-import { ConfirmDialog } from "../molecules/common/confirm-dialog";
 import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { ImportDialog } from "../molecules/graph/import-dialog";
 import { SaveTemplateDialog } from "../molecules/graph/save-template-dialog";
@@ -45,7 +55,10 @@ interface GraphAreaProps {
   onNodeDoubleClick?: (taskId: string) => void;
   onToggleComplete?: (taskId: string) => void;
   onTitleChange?: (taskId: string, newTitle: string) => void;
-  onAddTask?: (position?: { x: number; y: number }) => void;
+  onAddTask?: (
+    position?: { x: number; y: number },
+    connectFromIds?: string[],
+  ) => void;
   onAddTemplate?: (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
     edges: { sourceIndex: number; targetIndex: number }[];
@@ -64,7 +77,14 @@ interface GraphAreaProps {
   ) => void;
   onConnectIsolated?: () => void;
   parentId?: string | null;
-  shouldAutoFocus?: boolean;
+  titleFocusToken?: number;
+  onRequestTitleFocus?: () => void;
+  keyboardEnabled?: boolean;
+  onSelectTask?: (taskId: string | null) => void;
+  onEscapeToParent?: () => void;
+  onFocusMemo?: () => void;
+  onToggleMemo?: () => void;
+  onEditCurrentTitle?: () => void;
 }
 
 export function GraphArea({
@@ -88,14 +108,35 @@ export function GraphArea({
   onSaveTemplate,
   onConnectIsolated,
   parentId = null,
-  shouldAutoFocus = false,
+  titleFocusToken = 0,
+  onRequestTitleFocus,
+  keyboardEnabled = true,
+  onSelectTask,
+  onEscapeToParent,
+  onFocusMemo,
+  onToggleMemo,
+  onEditCurrentTitle,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [edgeSourceId, setEdgeSourceId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const panToPosition = useCallback(
+    (position: { x: number; y: number }) => {
+      if (!rfInstance) return;
+      const zoom = rfInstance.getZoom();
+      rfInstance.setCenter(position.x, position.y, {
+        zoom,
+        duration: 600,
+      });
+    },
+    [rfInstance],
+  );
 
   const handleAddTaskAtViewCenter = useCallback(() => {
     if (rfInstance && containerRef.current) {
@@ -111,27 +152,83 @@ export function GraphArea({
       const newPosition = findFreePosition(centerPosition, existingNodes);
 
       onAddTask?.(newPosition);
-
-      // Pan to the new position
-      const zoom = rfInstance.getZoom();
-      rfInstance.setCenter(newPosition.x, newPosition.y, {
-        zoom,
-        duration: 800,
-      });
+      panToPosition(newPosition);
     } else {
       onAddTask?.();
     }
-  }, [rfInstance, onAddTask]);
+  }, [rfInstance, onAddTask, panToPosition]);
+
+  const handleAddConnectedAfterSelected = useCallback(() => {
+    if (!rfInstance) {
+      onAddTask?.();
+      return;
+    }
+    const existingNodes = rfInstance.getNodes();
+    const selected = selectedTask
+      ? existingNodes.find((n) => n.id === selectedTask.id)
+      : null;
+    if (!selected) {
+      handleAddTaskAtViewCenter();
+      return;
+    }
+    const base = {
+      x: selected.position.x + (selected.width ?? 250) + 80,
+      y: selected.position.y,
+    };
+    const newPosition = findFreePosition(base, existingNodes);
+    onAddTask?.(newPosition, [selected.id]);
+    panToPosition(newPosition);
+  }, [
+    rfInstance,
+    selectedTask,
+    onAddTask,
+    panToPosition,
+    handleAddTaskAtViewCenter,
+  ]);
+
+  const handleAddSibling = useCallback(() => {
+    if (!rfInstance) {
+      onAddTask?.();
+      return;
+    }
+    const reference =
+      selectedTask ?? findEndNode(taskNodes, taskEdges, parentId);
+    if (!reference) {
+      handleAddTaskAtViewCenter();
+      return;
+    }
+    const predecessors = findPredecessors(reference.id, taskEdges, parentId);
+    const existingNodes = rfInstance.getNodes();
+    const refRf = existingNodes.find((n) => n.id === reference.id);
+    const base = {
+      x: reference.position.x,
+      y: reference.position.y + (refRf?.height ?? 100) + 60,
+    };
+    const newPosition = findFreePosition(base, existingNodes);
+    onAddTask?.(newPosition, predecessors);
+    panToPosition(newPosition);
+  }, [
+    rfInstance,
+    selectedTask,
+    taskNodes,
+    taskEdges,
+    parentId,
+    onAddTask,
+    panToPosition,
+    handleAddTaskAtViewCenter,
+  ]);
 
   const [state, send] = useMachine(
     graphMachine.provide({
       actions: {
         notifyNodeClick: ({ event }) => {
           if (event.type === "NODE_CLICK") {
+            setSelectedEdgeId(null);
             onNodeClick?.(event.nodeId);
           }
         },
         notifyPaneClick: () => {
+          setSelectedEdgeId(null);
           onPaneClickProp?.();
         },
         notifyNodeDoubleClick: ({ event }) => {
@@ -140,19 +237,108 @@ export function GraphArea({
           }
         },
         notifyAddTask: handleAddTaskAtViewCenter,
-        performDelete: () => {
-          const { nodesToDelete } = state.context;
-          if (nodesToDelete) {
-            for (const id of nodesToDelete) {
-              onRemoveTask?.(id);
-            }
+        performDelete: ({ context }) => {
+          const { nodesToDelete } = context;
+          if (!nodesToDelete || nodesToDelete.size === 0) return;
+          const nextSelectionId = findNextSelectionAfterDelete(
+            nodesToDelete,
+            taskNodes,
+            taskEdges,
+            parentId,
+          );
+          for (const id of nodesToDelete) {
+            onRemoveTask?.(id);
           }
+          onSelectTask?.(nextSelectionId);
+          const count = nodesToDelete.size;
+          addToast(
+            count > 1
+              ? `${count} 件のタスクを削除しました（u で元に戻す）`
+              : "タスクを削除しました（u で元に戻す）",
+            "success",
+          );
         },
       },
     }),
   );
   const isSelectionMode = state.matches("selecting");
   const selectedNodeIds = state.context.selectedNodeIds;
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleConnectFromSelected = useCallback(() => {
+    if (!selectedTask) return;
+    if (edgeSourceId === null) {
+      setEdgeSourceId(selectedTask.id);
+      addToast(
+        "接続元を選択しました。接続先タスクへ移動して e で確定",
+        "success",
+      );
+      return;
+    }
+    if (edgeSourceId === selectedTask.id) {
+      setEdgeSourceId(null);
+      return;
+    }
+    onAddEdge?.(edgeSourceId, selectedTask.id);
+    addToast("タスクを接続しました", "success");
+    setEdgeSourceId(null);
+  }, [selectedTask, edgeSourceId, onAddEdge, addToast]);
+
+  const handleCopyNode = useCallback(async () => {
+    if (isSelectionMode && selectedNodeIds.size > 0) {
+      const data = exportSelectedNodes(taskNodes, taskEdges, selectedNodeIds);
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+        addToast(
+          `${selectedNodeIds.size} 件のタスクをコピーしました`,
+          "success",
+        );
+      } catch {
+        addToast("コピーに失敗しました", "error");
+      }
+      return;
+    }
+    if (selectedTask) {
+      const data = exportSubgraph(selectedTask.id, taskNodes, taskEdges);
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+        addToast("タスクをコピーしました", "success");
+      } catch {
+        addToast("コピーに失敗しました", "error");
+      }
+    }
+  }, [
+    isSelectionMode,
+    selectedNodeIds,
+    taskNodes,
+    taskEdges,
+    selectedTask,
+    addToast,
+  ]);
+
+  const handlePasteImport = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = JSON.parse(text) as ExportedData;
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        Array.isArray(parsed.nodes) &&
+        Array.isArray(parsed.edges)
+      ) {
+        onImportTasks?.(parsed);
+        addToast("クリップボードからインポートしました", "success");
+      } else {
+        addToast("クリップボードの内容が不正な形式です", "error");
+      }
+    } catch {
+      addToast(
+        "クリップボードから読み込めませんでした。インポートダイアログを開きます",
+        "error",
+      );
+      send({ type: "OPEN_IMPORT" });
+    }
+  }, [onImportTasks, addToast, send]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: parentId is used as a trigger
   useEffect(() => {
@@ -177,6 +363,7 @@ export function GraphArea({
         data: {
           task,
           onToggleComplete,
+          isEdgeSource: edgeSourceId === task.id,
         },
       })),
     [
@@ -185,6 +372,7 @@ export function GraphArea({
       selectedNodeIds,
       isSelectionMode,
       selectedTask,
+      edgeSourceId,
     ],
   );
 
@@ -228,9 +416,9 @@ export function GraphArea({
         style: {
           strokeWidth: 2,
         },
-        selected: selectedEdgeIds.has(edge.id),
+        selected: selectedEdgeIds.has(edge.id) || selectedEdgeId === edge.id,
       })),
-    [taskEdges, onRemoveEdge, selectedEdgeIds],
+    [taskEdges, onRemoveEdge, selectedEdgeIds, selectedEdgeId],
   );
 
   const handleNodeClick = useCallback(
@@ -272,24 +460,94 @@ export function GraphArea({
     }, 50);
   }, [taskNodes, taskEdges, onTaskNodesChange, rfInstance]);
 
+  const handleSelectTaskFromKey = useCallback(
+    (taskId: string | null) => {
+      if (taskId && rfInstance) {
+        const node = rfInstance.getNode(taskId);
+        if (node) {
+          const zoom = rfInstance.getZoom();
+          const width = node.width ?? 0;
+          const height = node.height ?? 0;
+          rfInstance.setCenter(
+            node.position.x + width / 2,
+            node.position.y + height / 2,
+            { zoom, duration: 300 },
+          );
+        }
+      }
+      onSelectTask?.(taskId);
+    },
+    [onSelectTask, rfInstance],
+  );
+
+  const handleEditTitleFromKey = useCallback(
+    (taskId: string) => {
+      onSelectTask?.(taskId);
+      onRequestTitleFocus?.();
+    },
+    [onSelectTask, onRequestTitleFocus],
+  );
+
   useKeyboardShortcuts({
+    enabled: keyboardEnabled,
     selectedNodeIds,
+    selectedTaskId: selectedTask?.id ?? null,
+    selectedEdgeId,
+    nodes: taskNodes,
+    edges: taskEdges,
     onDelete: () => {
       if (selectedNodeIds.size > 0) {
         send({ type: "REQUEST_DELETE", nodeIds: Array.from(selectedNodeIds) });
       }
     },
     onAddTask: () => send({ type: "ADD_TASK" }),
+    onAddConnectedAfter: handleAddConnectedAfterSelected,
+    onAddSiblingOfEnd: handleAddSibling,
     onEscape: () => {
+      if (edgeSourceId !== null) {
+        setEdgeSourceId(null);
+        return;
+      }
+      if (selectedEdgeId !== null) {
+        setSelectedEdgeId(null);
+        return;
+      }
       if (isSelectionMode) {
         send({ type: "TOGGLE_MODE" });
+      } else if (selectedTask) {
+        onSelectTask?.(null);
+      } else {
+        onEscapeToParent?.();
       }
     },
     onToggleSelectionMode: () => {
+      const wasInSelection = isSelectionMode;
       send({ type: "TOGGLE_MODE" });
+      if (!wasInSelection && selectedTask) {
+        send({ type: "SET_SELECTION", nodeIds: [selectedTask.id] });
+      }
     },
     onFormat: handleFormat,
     onConnectIsolated,
+    onSelectTask: handleSelectTaskFromKey,
+    onSelectEdge: setSelectedEdgeId,
+    onOpenDetail: onNodeDoubleClick,
+    onEditTitle: handleEditTitleFromKey,
+    onToggleComplete,
+    onDeleteEdge: (edgeId) => {
+      onRemoveEdge?.(edgeId);
+      setSelectedEdgeId(null);
+    },
+    onDeleteTask: (taskId) =>
+      send({ type: "REQUEST_DELETE", nodeIds: [taskId] }),
+    onCopyNode: handleCopyNode,
+    onPaste: handlePasteImport,
+    onFocusMemo,
+    onToggleMemo,
+    onEditCurrentTitle,
+    selectionMode: isSelectionMode,
+    onExtendSelection: (id) => send({ type: "SET_SELECTION", nodeIds: [id] }),
+    onConnectFromSelected: handleConnectFromSelected,
   });
 
   const onPaneClick = useCallback(
@@ -400,6 +658,7 @@ export function GraphArea({
         onInit={setRfInstance}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        deleteKeyCode={null}
         selectionOnDrag={!isSelectionMode}
         panOnDrag={!isSelectionMode}
         selectionKeyCode="Shift"
@@ -419,7 +678,7 @@ export function GraphArea({
               send({ type: "REQUEST_DELETE", nodeIds: [taskId] })
             }
             onExportClick={onExportTask}
-            autoFocus={shouldAutoFocus}
+            titleFocusToken={titleFocusToken}
           />
         )}
       </ReactFlow>
@@ -461,16 +720,6 @@ export function GraphArea({
         isOpen={state.matches("savingTemplate")}
         onClose={() => send({ type: "CLOSE_DIALOG" })}
         onSave={handleSaveTemplate}
-      />
-
-      <ConfirmDialog
-        isOpen={state.matches("deleting")}
-        title="タスクの削除"
-        message={`選択した${state.context.nodesToDelete?.size ?? 0}件のタスクを削除してもよろしいですか？この操作は取り消せません。`}
-        confirmLabel="削除"
-        isDestructive
-        onConfirm={() => send({ type: "CONFIRM_DELETE" })}
-        onCancel={() => send({ type: "CANCEL_DELETE" })}
       />
 
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-50">

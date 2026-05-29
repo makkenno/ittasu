@@ -7,10 +7,11 @@ import type { TaskNode as TaskNodeType } from "../../../types/task";
 export interface TaskNodeData {
   task: TaskNodeType;
   onToggleComplete?: (taskId: string) => void;
+  isEdgeSource?: boolean;
 }
 
 export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
-  const { task, onToggleComplete } = data;
+  const { task, onToggleComplete, isEdgeSource } = data;
 
   return (
     <div
@@ -20,6 +21,7 @@ export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
           ? "bg-green-50 border-green-400"
           : "bg-white border-gray-300 hover:border-blue-400",
         selected && "ring-4 ring-blue-500/30 border-blue-600",
+        isEdgeSource && "ring-4 ring-orange-500/40 border-orange-500",
       )}
     >
       <Handle

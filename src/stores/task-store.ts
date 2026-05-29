@@ -1,3 +1,4 @@
+import { temporal } from "zundo";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { defaultTemplates } from "../data/templates";
@@ -44,7 +45,10 @@ interface TaskStore {
     position: { x: number; y: number },
   ) => void;
 
-  addChildTask: (position?: { x: number; y: number }) => void;
+  addChildTask: (
+    position?: { x: number; y: number },
+    connectFromIds?: string[],
+  ) => void;
 
   addTemplate: (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
@@ -88,229 +92,283 @@ interface TaskStore {
 
 export const useTaskStore = create<TaskStore>()(
   persist(
-    (set, get) => ({
-      nodes: [...sampleNodes, ...sampleChildNodes],
-      edges: [...sampleEdges, ...sampleChildEdges],
-      templates: defaultTemplates,
-      projects: [defaultProject],
-      currentTaskId: null,
-      currentProjectId: DEFAULT_PROJECT_ID,
-      selectedTaskId: null,
+    temporal(
+      (set, get) => ({
+        nodes: [...sampleNodes, ...sampleChildNodes],
+        edges: [...sampleEdges, ...sampleChildEdges],
+        templates: defaultTemplates,
+        projects: [defaultProject],
+        currentTaskId: null,
+        currentProjectId: DEFAULT_PROJECT_ID,
+        selectedTaskId: null,
 
-      importSubgraph: (data: ExportedData) => {
-        const { currentTaskId, currentProjectId } = get();
-        const { nodes: newNodes, edges: newEdges } = generateImportedData(
-          data,
-          currentTaskId,
-        );
+        importSubgraph: (data: ExportedData) => {
+          const { currentTaskId, currentProjectId } = get();
+          const { nodes: newNodes, edges: newEdges } = generateImportedData(
+            data,
+            currentTaskId,
+          );
 
-        const patchedNodes = newNodes.map((node) => ({
-          ...node,
-          projectId: node.parentId === null ? currentProjectId : null,
-        }));
+          const patchedNodes = newNodes.map((node) => ({
+            ...node,
+            projectId: node.parentId === null ? currentProjectId : null,
+          }));
 
-        set((state) => ({
-          nodes: [...state.nodes, ...patchedNodes],
-          edges: [...state.edges, ...newEdges],
-        }));
-      },
+          set((state) => ({
+            nodes: [...state.nodes, ...patchedNodes],
+            edges: [...state.edges, ...newEdges],
+          }));
+        },
 
-      updateTaskTitle: (taskId: string, title: string) => {
-        set((state) => ({
-          nodes: state.nodes.map((node) =>
-            node.id === taskId
-              ? { ...node, title, updatedAt: new Date() }
-              : node,
-          ),
-        }));
-      },
+        updateTaskTitle: (taskId: string, title: string) => {
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === taskId
+                ? { ...node, title, updatedAt: new Date() }
+                : node,
+            ),
+          }));
+        },
 
-      updateTaskMemo: (taskId: string, memo: string) => {
-        set((state) => ({
-          nodes: state.nodes.map((node) =>
-            node.id === taskId
-              ? { ...node, memo, updatedAt: new Date() }
-              : node,
-          ),
-        }));
-      },
+        updateTaskMemo: (taskId: string, memo: string) => {
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === taskId
+                ? { ...node, memo, updatedAt: new Date() }
+                : node,
+            ),
+          }));
+        },
 
-      toggleTaskComplete: (taskId: string) => {
-        set((state) => {
-          const newNodes = state.nodes.map((node) => {
-            if (node.id === taskId) {
-              const completed = !node.completed;
-              return {
-                ...node,
-                completed,
-                updatedAt: new Date(),
-                completedAt: completed ? new Date() : null,
-              };
-            }
-            return node;
+        toggleTaskComplete: (taskId: string) => {
+          set((state) => {
+            const newNodes = state.nodes.map((node) => {
+              if (node.id === taskId) {
+                const completed = !node.completed;
+                return {
+                  ...node,
+                  completed,
+                  updatedAt: new Date(),
+                  completedAt: completed ? new Date() : null,
+                };
+              }
+              return node;
+            });
+            return { nodes: newNodes };
           });
-          return { nodes: newNodes };
-        });
-      },
+        },
 
-      updateTaskPosition: (
-        taskId: string,
-        position: { x: number; y: number },
-      ) => {
-        set((state) => ({
-          nodes: state.nodes.map((node) =>
-            node.id === taskId
-              ? { ...node, position, updatedAt: new Date() }
-              : node,
-          ),
-        }));
-      },
+        updateTaskPosition: (
+          taskId: string,
+          position: { x: number; y: number },
+        ) => {
+          set((state) => ({
+            nodes: state.nodes.map((node) =>
+              node.id === taskId
+                ? { ...node, position, updatedAt: new Date() }
+                : node,
+            ),
+          }));
+        },
 
-      addChildTask: (
-        position: { x: number; y: number } = { x: 100, y: 100 },
-      ) => {
-        const { currentTaskId, currentProjectId } = get();
-        const newTaskId = `task-${Date.now()}`;
-        const newTask: TaskNode = {
-          id: newTaskId,
-          title: "",
-          memo: "",
-          completed: false,
-          parentId: currentTaskId,
-          projectId: currentTaskId === null ? currentProjectId : null,
-          position,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          completedAt: null,
-        };
-
-        set((state) => ({
-          selectedTaskId: newTaskId,
-          nodes: [...state.nodes, newTask],
-        }));
-      },
-
-      addTemplate: (template: {
-        tasks: (TemplateTask & { position: { x: number; y: number } })[];
-        edges: { sourceIndex: number; targetIndex: number }[];
-      }) => {
-        const { currentTaskId, currentProjectId } = get();
-        const now = Date.now();
-        const allNewNodes: TaskNode[] = [];
-        const allNewEdges: TaskEdge[] = [];
-
-        const processTask = (
-          task: TemplateTask & { position: { x: number; y: number } },
-          index: number,
-          parentId: string | null,
-          idPrefix: string,
-        ): TaskNode => {
-          const newTaskId = `task-${now}-${idPrefix}-${index}`;
-          const newNode: TaskNode = {
+        addChildTask: (
+          position: { x: number; y: number } = { x: 100, y: 100 },
+          connectFromIds: string[] = [],
+        ) => {
+          const { currentTaskId, currentProjectId } = get();
+          const now = Date.now();
+          const newTaskId = `task-${now}`;
+          const newTask: TaskNode = {
             id: newTaskId,
-            title: task.title,
-            memo: task.memo || "",
+            title: "",
+            memo: "",
             completed: false,
-            parentId: parentId,
-            projectId: parentId === null ? currentProjectId : null,
-            position: task.position,
+            parentId: currentTaskId,
+            projectId: currentTaskId === null ? currentProjectId : null,
+            position,
             createdAt: new Date(),
             updatedAt: new Date(),
             completedAt: null,
           };
-          allNewNodes.push(newNode);
 
-          if (task.children && task.children.length > 0) {
-            const childTasks = task.children.map((c: TemplateTask) => ({
-              ...c,
-              position: c.relativePosition,
-            }));
-            processLevel(
-              childTasks,
-              task.edges || [],
-              newTaskId,
-              `${idPrefix}-${index}`,
-            );
-          }
-          return newNode;
-        };
+          const newEdges: TaskEdge[] = connectFromIds.map((source, i) => ({
+            id: `edge-${now}-${i}`,
+            source,
+            target: newTaskId,
+            parentId: currentTaskId,
+          }));
 
-        const processEdges = (
-          levelEdges: { sourceIndex: number; targetIndex: number }[],
-          levelNodes: TaskNode[],
-          parentId: string | null,
-          idPrefix: string,
-        ) => {
-          for (let i = 0; i < levelEdges.length; i++) {
-            const edge = levelEdges[i];
-            if (!edge) continue;
+          set((state) => ({
+            selectedTaskId: newTaskId,
+            nodes: [...state.nodes, newTask],
+            edges: [...state.edges, ...newEdges],
+          }));
+        },
 
-            const sourceNode = levelNodes[edge.sourceIndex];
-            const targetNode = levelNodes[edge.targetIndex];
+        addTemplate: (template: {
+          tasks: (TemplateTask & { position: { x: number; y: number } })[];
+          edges: { sourceIndex: number; targetIndex: number }[];
+        }) => {
+          const { currentTaskId, currentProjectId } = get();
+          const now = Date.now();
+          const allNewNodes: TaskNode[] = [];
+          const allNewEdges: TaskEdge[] = [];
 
-            if (sourceNode && targetNode) {
-              allNewEdges.push({
-                id: `edge-${now}-${idPrefix}-${i}`,
-                source: sourceNode.id,
-                target: targetNode.id,
-                parentId: parentId,
-              });
+          const processTask = (
+            task: TemplateTask & { position: { x: number; y: number } },
+            index: number,
+            parentId: string | null,
+            idPrefix: string,
+          ): TaskNode => {
+            const newTaskId = `task-${now}-${idPrefix}-${index}`;
+            const newNode: TaskNode = {
+              id: newTaskId,
+              title: task.title,
+              memo: task.memo || "",
+              completed: false,
+              parentId: parentId,
+              projectId: parentId === null ? currentProjectId : null,
+              position: task.position,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              completedAt: null,
+            };
+            allNewNodes.push(newNode);
+
+            if (task.children && task.children.length > 0) {
+              const childTasks = task.children.map((c: TemplateTask) => ({
+                ...c,
+                position: c.relativePosition,
+              }));
+              processLevel(
+                childTasks,
+                task.edges || [],
+                newTaskId,
+                `${idPrefix}-${index}`,
+              );
             }
-          }
-        };
+            return newNode;
+          };
 
-        const processLevel = (
-          tasks: (TemplateTask & { position: { x: number; y: number } })[],
-          levelEdges: { sourceIndex: number; targetIndex: number }[],
-          parentId: string | null,
-          idPrefix: string,
+          const processEdges = (
+            levelEdges: { sourceIndex: number; targetIndex: number }[],
+            levelNodes: TaskNode[],
+            parentId: string | null,
+            idPrefix: string,
+          ) => {
+            for (let i = 0; i < levelEdges.length; i++) {
+              const edge = levelEdges[i];
+              if (!edge) continue;
+
+              const sourceNode = levelNodes[edge.sourceIndex];
+              const targetNode = levelNodes[edge.targetIndex];
+
+              if (sourceNode && targetNode) {
+                allNewEdges.push({
+                  id: `edge-${now}-${idPrefix}-${i}`,
+                  source: sourceNode.id,
+                  target: targetNode.id,
+                  parentId: parentId,
+                });
+              }
+            }
+          };
+
+          const processLevel = (
+            tasks: (TemplateTask & { position: { x: number; y: number } })[],
+            levelEdges: { sourceIndex: number; targetIndex: number }[],
+            parentId: string | null,
+            idPrefix: string,
+          ) => {
+            const levelNodes: TaskNode[] = [];
+
+            for (let i = 0; i < tasks.length; i++) {
+              const task = tasks[i];
+              if (!task) continue;
+              levelNodes.push(processTask(task, i, parentId, idPrefix));
+            }
+
+            processEdges(levelEdges, levelNodes, parentId, idPrefix);
+          };
+
+          processLevel(template.tasks, template.edges, currentTaskId, "root");
+
+          set((state) => ({
+            nodes: [...state.nodes, ...allNewNodes],
+            edges: [...state.edges, ...allNewEdges],
+          }));
+        },
+
+        saveTemplate: (
+          name: string,
+          description: string,
+          selectedNodeIds: Set<string>,
         ) => {
-          const levelNodes: TaskNode[] = [];
+          const { nodes, edges } = get();
+          const selectedNodes = nodes.filter((node) =>
+            selectedNodeIds.has(node.id),
+          );
 
-          for (let i = 0; i < tasks.length; i++) {
-            const task = tasks[i];
-            if (!task) continue;
-            levelNodes.push(processTask(task, i, parentId, idPrefix));
-          }
+          if (selectedNodes.length === 0) return;
 
-          processEdges(levelEdges, levelNodes, parentId, idPrefix);
-        };
+          const minX = Math.min(...selectedNodes.map((n) => n.position.x));
+          const minY = Math.min(...selectedNodes.map((n) => n.position.y));
 
-        processLevel(template.tasks, template.edges, currentTaskId, "root");
+          const buildTemplateTask = (node: TaskNode): TemplateTask => {
+            const children = nodes.filter((n) => n.parentId === node.id);
+            const childEdges = edges.filter((e) => e.parentId === node.id);
 
-        set((state) => ({
-          nodes: [...state.nodes, ...allNewNodes],
-          edges: [...state.edges, ...allNewEdges],
-        }));
-      },
+            const templateChildren = children.map(buildTemplateTask);
 
-      saveTemplate: (
-        name: string,
-        description: string,
-        selectedNodeIds: Set<string>,
-      ) => {
-        const { nodes, edges } = get();
-        const selectedNodes = nodes.filter((node) =>
-          selectedNodeIds.has(node.id),
-        );
+            const templateEdges = childEdges
+              .map((edge) => {
+                const sourceIndex = children.findIndex(
+                  (n) => n.id === edge.source,
+                );
+                const targetIndex = children.findIndex(
+                  (n) => n.id === edge.target,
+                );
+                if (sourceIndex === -1 || targetIndex === -1) return null;
+                return { sourceIndex, targetIndex };
+              })
+              .filter(
+                (e): e is { sourceIndex: number; targetIndex: number } =>
+                  e !== null,
+              );
 
-        if (selectedNodes.length === 0) return;
+            return {
+              title: node.title,
+              memo: node.memo,
+              relativePosition: {
+                x: node.position.x,
+                y: node.position.y,
+              },
+              children:
+                templateChildren.length > 0 ? templateChildren : undefined,
+              edges: templateEdges.length > 0 ? templateEdges : undefined,
+            };
+          };
 
-        const minX = Math.min(...selectedNodes.map((n) => n.position.x));
-        const minY = Math.min(...selectedNodes.map((n) => n.position.y));
+          const templateTasks: TemplateTask[] = selectedNodes.map((node) => {
+            const task = buildTemplateTask(node);
+            task.relativePosition = {
+              x: node.position.x - minX,
+              y: node.position.y - minY,
+            };
+            return task;
+          });
 
-        const buildTemplateTask = (node: TaskNode): TemplateTask => {
-          const children = nodes.filter((n) => n.parentId === node.id);
-          const childEdges = edges.filter((e) => e.parentId === node.id);
-
-          const templateChildren = children.map(buildTemplateTask);
-
-          const templateEdges = childEdges
+          const topLevelEdges = edges
+            .filter(
+              (edge) =>
+                selectedNodeIds.has(edge.source) &&
+                selectedNodeIds.has(edge.target),
+            )
             .map((edge) => {
-              const sourceIndex = children.findIndex(
+              const sourceIndex = selectedNodes.findIndex(
                 (n) => n.id === edge.source,
               );
-              const targetIndex = children.findIndex(
+              const targetIndex = selectedNodes.findIndex(
                 (n) => n.id === edge.target,
               );
               if (sourceIndex === -1 || targetIndex === -1) return null;
@@ -321,268 +379,244 @@ export const useTaskStore = create<TaskStore>()(
                 e !== null,
             );
 
-          return {
-            title: node.title,
-            memo: node.memo,
-            relativePosition: {
-              x: node.position.x,
-              y: node.position.y,
-            },
-            children:
-              templateChildren.length > 0 ? templateChildren : undefined,
-            edges: templateEdges.length > 0 ? templateEdges : undefined,
+          const newTemplate: TaskTemplate = {
+            id: `template-${Date.now()}`,
+            name,
+            description,
+            tasks: templateTasks,
+            edges: topLevelEdges,
           };
-        };
 
-        const templateTasks: TemplateTask[] = selectedNodes.map((node) => {
-          const task = buildTemplateTask(node);
-          task.relativePosition = {
-            x: node.position.x - minX,
-            y: node.position.y - minY,
+          set((state) => ({
+            templates: [...state.templates, newTemplate],
+          }));
+        },
+
+        deleteTemplate: (templateId: string) => {
+          set((state) => ({
+            templates: state.templates.filter((t) => t.id !== templateId),
+          }));
+        },
+
+        addEdge: (source: string, target: string) => {
+          const { currentTaskId } = get();
+          const newEdge: TaskEdge = {
+            id: `edge-${Date.now()}`,
+            source,
+            target,
+            parentId: currentTaskId,
           };
-          return task;
-        });
 
-        const topLevelEdges = edges
-          .filter(
-            (edge) =>
-              selectedNodeIds.has(edge.source) &&
-              selectedNodeIds.has(edge.target),
-          )
-          .map((edge) => {
-            const sourceIndex = selectedNodes.findIndex(
-              (n) => n.id === edge.source,
-            );
-            const targetIndex = selectedNodes.findIndex(
-              (n) => n.id === edge.target,
-            );
-            if (sourceIndex === -1 || targetIndex === -1) return null;
-            return { sourceIndex, targetIndex };
-          })
-          .filter(
-            (e): e is { sourceIndex: number; targetIndex: number } =>
-              e !== null,
+          set((state) => ({
+            edges: [...state.edges, newEdge],
+          }));
+        },
+
+        connectIsolatedTasks: () => {
+          const { nodes, edges, currentTaskId, currentProjectId } = get();
+
+          const currentNodes = nodes.filter(
+            (node) =>
+              node.parentId === currentTaskId &&
+              (currentTaskId !== null || node.projectId === currentProjectId),
+          );
+          if (currentNodes.length < 2) return;
+
+          const { isolated, tails } = analyzeConnectionsInScope(
+            currentNodes,
+            edges,
+            currentTaskId,
           );
 
-        const newTemplate: TaskTemplate = {
-          id: `template-${Date.now()}`,
-          name,
-          description,
-          tasks: templateTasks,
-          edges: topLevelEdges,
-        };
-
-        set((state) => ({
-          templates: [...state.templates, newTemplate],
-        }));
-      },
-
-      deleteTemplate: (templateId: string) => {
-        set((state) => ({
-          templates: state.templates.filter((t) => t.id !== templateId),
-        }));
-      },
-
-      addEdge: (source: string, target: string) => {
-        const { currentTaskId } = get();
-        const newEdge: TaskEdge = {
-          id: `edge-${Date.now()}`,
-          source,
-          target,
-          parentId: currentTaskId,
-        };
-
-        set((state) => ({
-          edges: [...state.edges, newEdge],
-        }));
-      },
-
-      connectIsolatedTasks: () => {
-        const { nodes, edges, currentTaskId, currentProjectId } = get();
-
-        const currentNodes = nodes.filter(
-          (node) =>
-            node.parentId === currentTaskId &&
-            (currentTaskId !== null || node.projectId === currentProjectId),
-        );
-        if (currentNodes.length < 2) return;
-
-        const { isolated, tails } = analyzeConnectionsInScope(
-          currentNodes,
-          edges,
-          currentTaskId,
-        );
-
-        const sortedIsolated = isolated.sort((a, b) => {
-          if (a.position.x !== b.position.x) {
-            return a.position.x - b.position.x;
-          }
-          return a.position.y - b.position.y;
-        });
-
-        const rightmostTail = tails.sort((a, b) => {
-          if (a.position.x !== b.position.x) {
-            return b.position.x - a.position.x;
-          }
-          return b.position.y - a.position.y;
-        })[0];
-
-        const chain = rightmostTail
-          ? [rightmostTail, ...sortedIsolated]
-          : sortedIsolated;
-        if (chain.length < 2) return;
-
-        const now = Date.now();
-        const newEdges: TaskEdge[] = [];
-        for (let i = 0; i < chain.length - 1; i++) {
-          const source = chain[i];
-          const target = chain[i + 1];
-          if (!source || !target) continue;
-          newEdges.push({
-            id: `edge-${now}-${i}`,
-            source: source.id,
-            target: target.id,
-            parentId: currentTaskId,
+          const sortedIsolated = isolated.sort((a, b) => {
+            if (a.position.x !== b.position.x) {
+              return a.position.x - b.position.x;
+            }
+            return a.position.y - b.position.y;
           });
-        }
 
-        set((state) => ({
-          edges: [...state.edges, ...newEdges],
-        }));
-      },
+          const rightmostTail = tails.sort((a, b) => {
+            if (a.position.x !== b.position.x) {
+              return b.position.x - a.position.x;
+            }
+            return b.position.y - a.position.y;
+          })[0];
 
-      removeEdge: (edgeId: string) => {
-        set((state) => ({
-          edges: state.edges.filter((edge) => edge.id !== edgeId),
-        }));
-      },
+          const chain = rightmostTail
+            ? [rightmostTail, ...sortedIsolated]
+            : sortedIsolated;
+          if (chain.length < 2) return;
 
-      removeTask: (taskId: string) => {
-        const { nodes } = get();
-
-        const tasksToRemove = getDescendantIds(nodes, taskId);
-
-        set((state) => ({
-          nodes: state.nodes.filter((node) => !tasksToRemove.has(node.id)),
-          edges: state.edges.filter(
-            (edge) =>
-              !tasksToRemove.has(edge.source) &&
-              !tasksToRemove.has(edge.target),
-          ),
-        }));
-      },
-
-      setCurrentTaskId: (taskId: string | null) => {
-        set({ currentTaskId: taskId, selectedTaskId: null });
-      },
-
-      goToParent: () => {
-        const { currentTaskId, nodes } = get();
-        if (!currentTaskId) return;
-
-        const currentTask = nodes.find((node) => node.id === currentTaskId);
-
-        if (!currentTask) {
-          set({ currentTaskId: null, selectedTaskId: null });
-          get().removeTask(currentTaskId);
-          return;
-        }
-
-        set({ currentTaskId: currentTask.parentId, selectedTaskId: null });
-      },
-
-      goToNextTask: () => {
-        const { nodes, edges, currentTaskId, currentProjectId } = get();
-        // At root level, only traverse tasks belonging to the current project
-        const filteredNodes = nodes.filter(
-          (n) => n.parentId !== null || n.projectId === currentProjectId,
-        );
-        const nextTaskId = findNextTask(filteredNodes, edges, currentTaskId);
-
-        if (nextTaskId) {
-          set({ currentTaskId: nextTaskId, selectedTaskId: null });
-        }
-      },
-
-      selectTask: (taskId: string | null) => {
-        set({ selectedTaskId: taskId });
-      },
-
-      addProject: (id: string, name: string) => {
-        const newProject: Project = {
-          id,
-          name,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        const newTask: TaskNode = {
-          id: `task-${Date.now()}`,
-          title: "",
-          memo: "",
-          completed: false,
-          parentId: null,
-          projectId: id,
-          position: { x: 100, y: 100 },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          completedAt: null,
-        };
-        set((state) => ({
-          projects: [...state.projects, newProject],
-          nodes: [...state.nodes, newTask],
-          currentProjectId: id,
-          currentTaskId: null,
-          selectedTaskId: null,
-        }));
-      },
-
-      renameProject: (projectId: string, name: string) => {
-        set((state) => ({
-          projects: state.projects.map((p) =>
-            p.id === projectId ? { ...p, name, updatedAt: new Date() } : p,
-          ),
-        }));
-      },
-
-      deleteProject: (projectId: string) => {
-        const { nodes, projects } = get();
-
-        const idsToDelete = new Set<string>();
-        for (const node of nodes.filter(
-          (n) => n.parentId === null && n.projectId === projectId,
-        )) {
-          for (const id of getDescendantIds(nodes, node.id)) {
-            idsToDelete.add(id);
+          const now = Date.now();
+          const newEdges: TaskEdge[] = [];
+          for (let i = 0; i < chain.length - 1; i++) {
+            const source = chain[i];
+            const target = chain[i + 1];
+            if (!source || !target) continue;
+            newEdges.push({
+              id: `edge-${now}-${i}`,
+              source: source.id,
+              target: target.id,
+              parentId: currentTaskId,
+            });
           }
-        }
 
-        const remainingProjects = projects.filter((p) => p.id !== projectId);
+          set((state) => ({
+            edges: [...state.edges, ...newEdges],
+          }));
+        },
 
-        set((state) => ({
-          projects: remainingProjects,
-          currentProjectId:
-            state.currentProjectId === projectId
-              ? (remainingProjects[0]?.id ?? null)
-              : state.currentProjectId,
-          currentTaskId:
-            state.currentProjectId === projectId ? null : state.currentTaskId,
-          selectedTaskId:
-            state.currentProjectId === projectId ? null : state.selectedTaskId,
-          nodes: state.nodes.filter((n) => !idsToDelete.has(n.id)),
-          edges: state.edges.filter(
-            (e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target),
-          ),
-        }));
+        removeEdge: (edgeId: string) => {
+          set((state) => ({
+            edges: state.edges.filter((edge) => edge.id !== edgeId),
+          }));
+        },
+
+        removeTask: (taskId: string) => {
+          const { nodes } = get();
+
+          const tasksToRemove = getDescendantIds(nodes, taskId);
+
+          set((state) => ({
+            nodes: state.nodes.filter((node) => !tasksToRemove.has(node.id)),
+            edges: state.edges.filter(
+              (edge) =>
+                !tasksToRemove.has(edge.source) &&
+                !tasksToRemove.has(edge.target),
+            ),
+          }));
+        },
+
+        setCurrentTaskId: (taskId: string | null) => {
+          set({ currentTaskId: taskId, selectedTaskId: null });
+        },
+
+        goToParent: () => {
+          const { currentTaskId, nodes } = get();
+          if (!currentTaskId) return;
+
+          const currentTask = nodes.find((node) => node.id === currentTaskId);
+
+          if (!currentTask) {
+            set({ currentTaskId: null, selectedTaskId: null });
+            get().removeTask(currentTaskId);
+            return;
+          }
+
+          set({ currentTaskId: currentTask.parentId, selectedTaskId: null });
+        },
+
+        goToNextTask: () => {
+          const { nodes, edges, currentTaskId, currentProjectId } = get();
+          // At root level, only traverse tasks belonging to the current project
+          const filteredNodes = nodes.filter(
+            (n) => n.parentId !== null || n.projectId === currentProjectId,
+          );
+          const nextTaskId = findNextTask(filteredNodes, edges, currentTaskId);
+
+          if (nextTaskId) {
+            set({ currentTaskId: nextTaskId, selectedTaskId: null });
+          }
+        },
+
+        selectTask: (taskId: string | null) => {
+          set({ selectedTaskId: taskId });
+        },
+
+        addProject: (id: string, name: string) => {
+          const newProject: Project = {
+            id,
+            name,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          const newTask: TaskNode = {
+            id: `task-${Date.now()}`,
+            title: "",
+            memo: "",
+            completed: false,
+            parentId: null,
+            projectId: id,
+            position: { x: 100, y: 100 },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            completedAt: null,
+          };
+          set((state) => ({
+            projects: [...state.projects, newProject],
+            nodes: [...state.nodes, newTask],
+            currentProjectId: id,
+            currentTaskId: null,
+            selectedTaskId: null,
+          }));
+        },
+
+        renameProject: (projectId: string, name: string) => {
+          set((state) => ({
+            projects: state.projects.map((p) =>
+              p.id === projectId ? { ...p, name, updatedAt: new Date() } : p,
+            ),
+          }));
+        },
+
+        deleteProject: (projectId: string) => {
+          const { nodes, projects } = get();
+
+          const idsToDelete = new Set<string>();
+          for (const node of nodes.filter(
+            (n) => n.parentId === null && n.projectId === projectId,
+          )) {
+            for (const id of getDescendantIds(nodes, node.id)) {
+              idsToDelete.add(id);
+            }
+          }
+
+          const remainingProjects = projects.filter((p) => p.id !== projectId);
+
+          set((state) => ({
+            projects: remainingProjects,
+            currentProjectId:
+              state.currentProjectId === projectId
+                ? (remainingProjects[0]?.id ?? null)
+                : state.currentProjectId,
+            currentTaskId:
+              state.currentProjectId === projectId ? null : state.currentTaskId,
+            selectedTaskId:
+              state.currentProjectId === projectId
+                ? null
+                : state.selectedTaskId,
+            nodes: state.nodes.filter((n) => !idsToDelete.has(n.id)),
+            edges: state.edges.filter(
+              (e) => !idsToDelete.has(e.source) && !idsToDelete.has(e.target),
+            ),
+          }));
+        },
+
+        setCurrentProjectId: (projectId: string) => {
+          set({
+            currentProjectId: projectId,
+            currentTaskId: null,
+            selectedTaskId: null,
+          });
+        },
+      }),
+      {
+        partialize: (state) => ({
+          nodes: state.nodes,
+          edges: state.edges,
+          projects: state.projects,
+          templates: state.templates,
+          currentTaskId: state.currentTaskId,
+          currentProjectId: state.currentProjectId,
+        }),
+        equality: (past, current) =>
+          past.nodes === current.nodes &&
+          past.edges === current.edges &&
+          past.projects === current.projects &&
+          past.templates === current.templates,
+        limit: 100,
       },
-
-      setCurrentProjectId: (projectId: string) => {
-        set({
-          currentProjectId: projectId,
-          currentTaskId: null,
-          selectedTaskId: null,
-        });
-      },
-    }),
+    ),
     {
       name: "task-storage",
       storage: createJSONStorage(() => indexedDBStorage),

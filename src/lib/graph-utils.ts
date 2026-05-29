@@ -127,6 +127,118 @@ export const findFreePosition = (
   return center; // Fallback
 };
 
+export const findEndNode = (
+  nodes: TaskNode[],
+  edges: TaskEdge[],
+  parentId: string | null,
+): TaskNode | null => {
+  if (nodes.length === 0) return null;
+  const scopeEdges = edges.filter((e) => e.parentId === parentId);
+  const hasOutgoing = new Set(scopeEdges.map((e) => e.source));
+  const ends = nodes.filter((n) => !hasOutgoing.has(n.id));
+  const pool = ends.length > 0 ? ends : nodes;
+  return (
+    [...pool].sort((a, b) => {
+      if (a.position.x !== b.position.x) return b.position.x - a.position.x;
+      return b.position.y - a.position.y;
+    })[0] ?? null
+  );
+};
+
+export const findStartNode = (
+  nodes: TaskNode[],
+  edges: TaskEdge[],
+  parentId: string | null,
+): TaskNode | null => {
+  if (nodes.length === 0) return null;
+  const scopeEdges = edges.filter((e) => e.parentId === parentId);
+  const hasIncoming = new Set(scopeEdges.map((e) => e.target));
+  const starts = nodes.filter((n) => !hasIncoming.has(n.id));
+  const pool = starts.length > 0 ? starts : nodes;
+  return (
+    [...pool].sort((a, b) => {
+      if (a.position.x !== b.position.x) return a.position.x - b.position.x;
+      return a.position.y - b.position.y;
+    })[0] ?? null
+  );
+};
+
+export const findPredecessors = (
+  nodeId: string,
+  edges: TaskEdge[],
+  parentId: string | null,
+): string[] => {
+  return edges
+    .filter((e) => e.parentId === parentId && e.target === nodeId)
+    .map((e) => e.source);
+};
+
+const findOutgoingNeighbor = (
+  deletedIds: Set<string>,
+  scopeEdges: TaskEdge[],
+  remainingIds: Set<string>,
+): string | null => {
+  for (const edge of scopeEdges) {
+    if (deletedIds.has(edge.source) && remainingIds.has(edge.target)) {
+      return edge.target;
+    }
+  }
+  return null;
+};
+
+const findIncomingNeighbor = (
+  deletedIds: Set<string>,
+  scopeEdges: TaskEdge[],
+  remainingIds: Set<string>,
+): string | null => {
+  for (const edge of scopeEdges) {
+    if (deletedIds.has(edge.target) && remainingIds.has(edge.source)) {
+      return edge.source;
+    }
+  }
+  return null;
+};
+
+const findSpatiallyNearest = (
+  reference: TaskNode,
+  remaining: TaskNode[],
+): string | null => {
+  let best: { id: string; dist: number } | null = null;
+  for (const n of remaining) {
+    const dx = n.position.x - reference.position.x;
+    const dy = n.position.y - reference.position.y;
+    const dist = dx * dx + dy * dy;
+    if (!best || dist < best.dist) {
+      best = { id: n.id, dist };
+    }
+  }
+  return best?.id ?? null;
+};
+
+export const findNextSelectionAfterDelete = (
+  deletedIds: Set<string>,
+  nodes: TaskNode[],
+  edges: TaskEdge[],
+  parentId: string | null,
+): string | null => {
+  if (deletedIds.size === 0) return null;
+  const scopeNodes = nodes.filter((n) => n.parentId === parentId);
+  const remaining = scopeNodes.filter((n) => !deletedIds.has(n.id));
+  if (remaining.length === 0) return null;
+
+  const reference = scopeNodes.find((n) => deletedIds.has(n.id));
+  if (!reference) return remaining[0]?.id ?? null;
+
+  const scopeEdges = edges.filter((e) => e.parentId === parentId);
+  const remainingIds = new Set(remaining.map((n) => n.id));
+
+  return (
+    findOutgoingNeighbor(deletedIds, scopeEdges, remainingIds) ??
+    findIncomingNeighbor(deletedIds, scopeEdges, remainingIds) ??
+    findSpatiallyNearest(reference, remaining)
+  );
+};
+
 export const getLayoutedElements = (
   nodes: TaskNode[],
   edges: TaskEdge[],

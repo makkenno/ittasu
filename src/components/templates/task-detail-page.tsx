@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ImperativePanelHandle,
+  Panel,
+  PanelGroup,
+  PanelResizeHandle,
+} from "react-resizable-panels";
+import { tinykeys } from "tinykeys";
 import {
   exportSelectedNodes,
   exportSubgraph,
@@ -7,11 +13,14 @@ import {
 import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import type { TemplateTask } from "../../types/template";
+import { ShortcutHelpDialog } from "../molecules/common/shortcut-help-dialog";
 import { GraphArea } from "../organisms/graph-area";
 import { Header } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
 import { Sidebar } from "../organisms/sidebar";
 import { PreviewPage } from "./preview-page";
+
+type FocusArea = "graph" | "sidebar";
 
 export function TaskDetailPage() {
   const currentTaskId = useTaskStore((state) => state.currentTaskId);
@@ -40,7 +49,70 @@ export function TaskDetailPage() {
   const addToast = useToastStore((state) => state.addToast);
 
   const [showPreview, setShowPreview] = useState(false);
-  const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
+  const [titleFocusToken, setTitleFocusToken] = useState(0);
+  const [memoFocusToken, setMemoFocusToken] = useState(0);
+  const [headerTitleEditToken, setHeaderTitleEditToken] = useState(0);
+  const [focusArea, setFocusArea] = useState<FocusArea>("graph");
+  const [showHelp, setShowHelp] = useState(false);
+  const memoPanelRef = useRef<ImperativePanelHandle>(null);
+
+  const requestTitleFocus = useCallback(
+    () => setTitleFocusToken((n) => n + 1),
+    [],
+  );
+  const requestMemoFocus = useCallback(() => {
+    memoPanelRef.current?.expand();
+    setMemoFocusToken((n) => n + 1);
+  }, []);
+  const toggleMemoVisible = useCallback(() => {
+    const panel = memoPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  }, []);
+  const requestHeaderTitleEdit = useCallback(
+    () => setHeaderTitleEditToken((n) => n + 1),
+    [],
+  );
+
+  const focusSidebar = useCallback(() => setFocusArea("sidebar"), []);
+  const focusGraph = useCallback(() => setFocusArea("graph"), []);
+
+  useEffect(() => {
+    const unsubGlobal = tinykeys(
+      window,
+      {
+        "Control+e": (event) => {
+          event.preventDefault();
+          const active = document.activeElement;
+          if (active instanceof HTMLElement) active.blur();
+          setFocusArea((prev) => (prev === "sidebar" ? "graph" : "sidebar"));
+        },
+      },
+      {
+        capture: true,
+        ignore: (event) => event.repeat || event.isComposing,
+      },
+    );
+    const unsubHelp = tinykeys(window, {
+      "Shift+?": (event) => {
+        event.preventDefault();
+        setShowHelp((v) => !v);
+      },
+      u: (event) => {
+        event.preventDefault();
+        useTaskStore.temporal.getState().undo();
+      },
+      "Control+r": (event) => {
+        event.preventDefault();
+        useTaskStore.temporal.getState().redo();
+      },
+    });
+    return () => {
+      unsubGlobal();
+      unsubHelp();
+    };
+  }, []);
 
   // 現在のタスクを取得
   const currentTask = currentTaskId
@@ -89,7 +161,6 @@ export function TaskDetailPage() {
   };
 
   const handleNodeClick = (taskId: string) => {
-    setShouldAutoFocus(false);
     selectTask(taskId);
   };
 
@@ -105,16 +176,17 @@ export function TaskDetailPage() {
     updateTaskTitle(taskId, newTitle);
   };
 
-  const handleAddTask = (position?: { x: number; y: number }) => {
-    setShouldAutoFocus(true);
-    addChildTask(position);
+  const handleAddTask = (
+    position?: { x: number; y: number },
+    connectFromIds?: string[],
+  ) => {
+    addChildTask(position, connectFromIds);
   };
 
   const handleAddTemplate = (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
     edges: { sourceIndex: number; targetIndex: number }[];
   }) => {
-    setShouldAutoFocus(false); // 複数追加時はフォーカスしない
     addTemplate(template);
   };
 
@@ -268,7 +340,11 @@ ${memoContent}`;
 
   return (
     <div className="flex h-[100dvh]">
-      <Sidebar />
+      <Sidebar
+        focused={focusArea === "sidebar"}
+        onFocus={focusSidebar}
+        onBlur={focusGraph}
+      />
       <div className="flex flex-col flex-1 min-w-0">
         {!isRoot && (
           <Header
@@ -280,6 +356,7 @@ ${memoContent}`;
             onBackClick={handleBackClick}
             onNextTaskClick={handleNextTaskClick}
             onPreviewClick={handlePreviewClick}
+            titleEditToken={headerTitleEditToken}
           />
         )}
 
@@ -306,7 +383,10 @@ ${memoContent}`;
               onSaveTemplate={handleSaveTemplate}
               onConnectIsolated={connectIsolatedTasks}
               parentId={currentTaskId}
-              shouldAutoFocus={shouldAutoFocus}
+              titleFocusToken={titleFocusToken}
+              onRequestTitleFocus={requestTitleFocus}
+              keyboardEnabled={focusArea === "graph"}
+              onSelectTask={selectTask}
             />
           </div>
         ) : (
@@ -334,24 +414,41 @@ ${memoContent}`;
                   onSaveTemplate={handleSaveTemplate}
                   onConnectIsolated={connectIsolatedTasks}
                   parentId={currentTaskId}
-                  shouldAutoFocus={shouldAutoFocus}
+                  titleFocusToken={titleFocusToken}
+                  onRequestTitleFocus={requestTitleFocus}
+                  keyboardEnabled={focusArea === "graph"}
+                  onSelectTask={selectTask}
+                  onEscapeToParent={goToParent}
+                  onFocusMemo={requestMemoFocus}
+                  onToggleMemo={toggleMemoVisible}
+                  onEditCurrentTitle={requestHeaderTitleEdit}
                 />
               </Panel>
               <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-blue-400 transition-colors cursor-row-resize flex items-center justify-center">
                 <div className="w-12 h-1 bg-gray-400 rounded-full" />
               </PanelResizeHandle>
-              <Panel defaultSize={40} minSize={20} collapsible={true}>
+              <Panel
+                ref={memoPanelRef}
+                defaultSize={40}
+                minSize={20}
+                collapsible={true}
+              >
                 <MemoArea
                   memo={memo}
                   onMemoChange={handleMemoChange}
                   onCopyMemo={handleCopyMemo}
                   onCopyExportPrompt={handleCopyExportPrompt}
+                  focusToken={memoFocusToken}
                 />
               </Panel>
             </PanelGroup>
           </div>
         )}
       </div>
+      <ShortcutHelpDialog
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
     </div>
   );
 }

@@ -35,8 +35,10 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
+    "tinykeys": "^4.0.0",
     "valibot": "^1.2.0",
     "xstate": "^5.24.0",
+    "zundo": "^2.3.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

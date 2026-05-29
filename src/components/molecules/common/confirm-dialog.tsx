@@ -1,4 +1,6 @@
 import { AlertTriangle } from "lucide-react";
+import { useEffect } from "react";
+import { tinykeys } from "tinykeys";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -21,6 +23,34 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const confirm = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onConfirm();
+    };
+    const cancel = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onCancel();
+    };
+    return tinykeys(
+      window,
+      {
+        "[Shift]+y": confirm,
+        Enter: confirm,
+        "[Shift]+n": cancel,
+        Escape: cancel,
+        "Control+[": cancel,
+      },
+      {
+        capture: true,
+        ignore: (event) => event.repeat || event.isComposing,
+      },
+    );
+  }, [isOpen, onConfirm, onCancel]);
+
   if (!isOpen) return null;
 
   return (
@@ -46,6 +76,9 @@ export function ConfirmDialog({
               onClick={onCancel}
               className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors font-medium"
             >
+              <span className="mr-1.5 inline-flex items-center justify-center min-w-[1.25rem] px-1 text-[10px] font-mono font-semibold text-gray-500 bg-gray-100 border border-gray-300 rounded">
+                N
+              </span>
               {cancelLabel}
             </button>
             <button
@@ -57,6 +90,15 @@ export function ConfirmDialog({
                   : "bg-blue-500 hover:bg-blue-600"
               }`}
             >
+              <span
+                className={`mr-1.5 inline-flex items-center justify-center min-w-[1.25rem] px-1 text-[10px] font-mono font-semibold border rounded ${
+                  isDestructive
+                    ? "text-red-100 border-red-300 bg-red-600/40"
+                    : "text-blue-100 border-blue-300 bg-blue-600/40"
+                }`}
+              >
+                Y
+              </span>
               {confirmLabel}
             </button>
           </div>

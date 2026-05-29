@@ -74,12 +74,18 @@ dependencies:
   tailwindcss:
     specifier: ^4.1.17
     version: 4.1.17
+  tinykeys:
+    specifier: ^4.0.0
+    version: 4.0.0
   valibot:
     specifier: ^1.2.0
     version: 1.2.0(typescript@5.9.3)
   xstate:
     specifier: ^5.24.0
     version: 5.24.0
+  zundo:
+    specifier: ^2.3.0
+    version: 2.3.0(zustand@5.0.8)
   zustand:
     specifier: ^5.0.8
     version: 5.0.8(@types/react@19.2.2)(immer@10.2.0)(react@19.2.0)
@@ -3650,6 +3656,11 @@ packages:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
 
+  /tinykeys@4.0.0:
+    resolution: {integrity: sha512-z5bQRQHL1PSx3lGOZEAMM2oKp0EBtn5T5f7HJnaKPOzk6vEH0wUPvdHLeQ7F4tmkek8AgoTQISUFmn/5SNF2xA==}
+    engines: {node: '>=22'}
+    dev: false
+
   /tinyrainbow@3.0.3:
     resolution: {integrity: sha512-PSkbLUoxOFRzJYjjxHJt9xro7D+iilgMX/C9lawzVuYiIdcihh9DXmVibBe8lmcFrRi/VzlPjBxbN7rH24q8/Q==}
     engines: {node: '>=14.0.0'}
@@ -4014,6 +4025,14 @@ packages:
   /zod@4.1.13:
     resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
     dev: true
+
+  /zundo@2.3.0(zustand@5.0.8):
+    resolution: {integrity: sha512-4GXYxXA17SIKYhVbWHdSEU04P697IMyVGXrC2TnzoyohEAWytFNOKqOp5gTGvaW93F/PM5Y0evbGtOPF0PWQwQ==}
+    peerDependencies:
+      zustand: ^4.3.0 || ^5.0.0
+    dependencies:
+      zustand: 5.0.8(@types/react@19.2.2)(immer@10.2.0)(react@19.2.0)
+    dev: false
 
   /zustand@4.5.7(@types/react@19.2.2)(immer@10.2.0)(react@19.2.0):
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}

@@ -1,20 +1,34 @@
 import { useEffect, useRef, useState } from "react";
+import { isEscapeKey } from "../../../lib/keyboard";
+import { useEditSession } from "../../../stores/use-edit-session";
 
 interface TaskTitleProps {
   title: string;
   onChange?: (newTitle: string) => void;
+  editToken?: number;
 }
 
-export function TaskTitle({ title, onChange }: TaskTitleProps) {
+export function TaskTitle({ title, onChange, editToken = 0 }: TaskTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastTokenRef = useRef(editToken);
+  const { handleFocus, handleBlur: endSession } = useEditSession();
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
+      inputRef.current.select();
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    if (editToken !== lastTokenRef.current) {
+      setIsEditing(true);
+      setEditValue(title);
+    }
+    lastTokenRef.current = editToken;
+  }, [editToken, title]);
 
   const handleClick = () => {
     setIsEditing(true);
@@ -28,13 +42,15 @@ export function TaskTitle({ title, onChange }: TaskTitleProps) {
     } else {
       setEditValue(title);
     }
+    endSession();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter") {
       e.preventDefault();
       handleBlur();
-    } else if (e.key === "Escape") {
+    } else if (isEscapeKey(e)) {
       setIsEditing(false);
       setEditValue(title);
     }
@@ -47,6 +63,7 @@ export function TaskTitle({ title, onChange }: TaskTitleProps) {
         type="text"
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className="text-xl font-bold px-2 py-1 border-2 border-blue-500 rounded focus:outline-none w-full"

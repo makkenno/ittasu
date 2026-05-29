@@ -13,6 +13,7 @@ interface HeaderProps {
   onBackClick?: () => void;
   onNextTaskClick?: () => void;
   onPreviewClick?: () => void;
+  titleEditToken?: number;
 }
 
 export function Header({
@@ -24,6 +25,7 @@ export function Header({
   onBackClick,
   onNextTaskClick,
   onPreviewClick,
+  titleEditToken = 0,
 }: HeaderProps) {
   return (
     <header className="flex items-center justify-between gap-2 px-3 py-3 md:px-6 md:py-4 border-b bg-white shadow-sm">
@@ -32,7 +34,11 @@ export function Header({
       </div>
 
       <div className="flex-1 min-w-0">
-        <TaskTitle title={title} onChange={onTitleChange} />
+        <TaskTitle
+          title={title}
+          onChange={onTitleChange}
+          editToken={titleEditToken}
+        />
       </div>
 
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
