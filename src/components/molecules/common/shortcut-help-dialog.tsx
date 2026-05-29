@@ -57,6 +57,7 @@ const sections: ShortcutSection[] = [
       },
       { combos: [["f"]], description: "自動整列" },
       { combos: [["/"]], description: "タスク名で検索してジャンプ" },
+      { combos: [["P"]], description: "プレビュー画面を開く" },
       { combos: [[">"]], description: "ズームイン" },
       { combos: [["<"]], description: "ズームアウト" },
       { combos: [["0"]], description: "ビューをフィット" },
@@ -92,6 +93,22 @@ const sections: ShortcutSection[] = [
       {
         combos: [["Esc"], ["Ctrl", "["], ["h"]],
         description: "サイドバーから抜ける",
+      },
+    ],
+  },
+  {
+    title: "プレビュー画面",
+    items: [
+      { combos: [["j"]], description: "下にスクロール" },
+      { combos: [["k"]], description: "上にスクロール" },
+      { combos: [["Ctrl", "D"]], description: "半画面下スクロール" },
+      { combos: [["Ctrl", "U"]], description: "半画面上スクロール" },
+      { combos: [["g", "g"]], description: "先頭へ" },
+      { combos: [["G"]], description: "末尾へ" },
+      { combos: [["y"]], description: "マークダウンをコピー" },
+      {
+        combos: [["Esc"], ["Ctrl", "["]],
+        description: "プレビューを閉じる",
       },
     ],
   },

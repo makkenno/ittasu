@@ -38,6 +38,7 @@ interface UseKeyboardShortcutsProps {
   onZoomOut?: () => void;
   onFitView?: () => void;
   onOpenSearch?: () => void;
+  onOpenPreview?: () => void;
 }
 
 type Movable =
@@ -139,6 +140,7 @@ export function useKeyboardShortcuts({
   onZoomOut,
   onFitView,
   onOpenSearch,
+  onOpenPreview,
 }: UseKeyboardShortcutsProps) {
   useEffect(() => {
     if (!enabled) return;
@@ -252,6 +254,7 @@ export function useKeyboardShortcuts({
       "Shift+<": handle(() => onZoomOut?.()),
       "0": handle(() => onFitView?.()),
       "/": handle(() => onOpenSearch?.()),
+      "Shift+p": handle(() => onOpenPreview?.()),
     });
   }, [
     enabled,
@@ -287,5 +290,6 @@ export function useKeyboardShortcuts({
     onZoomOut,
     onFitView,
     onOpenSearch,
+    onOpenPreview,
   ]);
 }

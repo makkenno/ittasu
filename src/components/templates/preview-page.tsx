@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { tinykeys } from "tinykeys";
 import { generateMarkdown, sortByDependencies } from "../../lib/markdown-utils";
+import { useToastStore } from "../../stores/toast-store";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode } from "../../types/task";
 import { MarkdownPreview } from "../molecules/memo/markdown-preview";
@@ -26,17 +28,75 @@ export function PreviewPage({
 }: PreviewPageProps) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"preview" | "edit" | "split">("preview");
+  const addToast = useToastStore((s) => s.addToast);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     const markdown = generateMarkdown(nodes, edges, currentTaskId);
     try {
       await navigator.clipboard.writeText(markdown);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      addToast("マークダウンをコピーしました", "success");
     } catch (error) {
       console.error("Failed to copy markdown:", error);
+      addToast("コピーに失敗しました", "error");
     }
-  };
+  }, [nodes, edges, currentTaskId, addToast]);
+
+  useEffect(() => {
+    const getContainer = () =>
+      document.getElementById("preview-scroll-container");
+    const scrollBy = (delta: number) => {
+      getContainer()?.scrollBy({ top: delta, behavior: "smooth" });
+    };
+    const scrollByHalfPage = (sign: 1 | -1) => {
+      const el = getContainer();
+      if (!el) return;
+      el.scrollBy({ top: sign * (el.clientHeight / 2), behavior: "smooth" });
+    };
+    const scrollTo = (top: number) => {
+      getContainer()?.scrollTo({ top, behavior: "smooth" });
+    };
+    return tinykeys(window, {
+      j: (e) => {
+        e.preventDefault();
+        scrollBy(80);
+      },
+      k: (e) => {
+        e.preventDefault();
+        scrollBy(-80);
+      },
+      "Control+d": (e) => {
+        e.preventDefault();
+        scrollByHalfPage(1);
+      },
+      "Control+u": (e) => {
+        e.preventDefault();
+        scrollByHalfPage(-1);
+      },
+      "g g": (e) => {
+        e.preventDefault();
+        scrollTo(0);
+      },
+      "Shift+g": (e) => {
+        e.preventDefault();
+        const el = getContainer();
+        if (el) scrollTo(el.scrollHeight);
+      },
+      Escape: (e) => {
+        e.preventDefault();
+        onBack();
+      },
+      "Control+[": (e) => {
+        e.preventDefault();
+        onBack();
+      },
+      y: (e) => {
+        e.preventDefault();
+        handleCopy();
+      },
+    });
+  }, [onBack, handleCopy]);
 
   const renderTasks = () => {
     let tasksToRender: TaskNode[] = [];

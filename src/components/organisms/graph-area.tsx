@@ -87,6 +87,7 @@ interface GraphAreaProps {
   onToggleMemo?: () => void;
   onEditCurrentTitle?: () => void;
   onCopyCurrent?: () => void;
+  onOpenPreview?: () => void;
 }
 
 export function GraphArea({
@@ -119,6 +120,7 @@ export function GraphArea({
   onToggleMemo,
   onEditCurrentTitle,
   onCopyCurrent,
+  onOpenPreview,
 }: GraphAreaProps) {
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [edgeSourceId, setEdgeSourceId] = useState<string | null>(null);
@@ -559,6 +561,7 @@ export function GraphArea({
     onZoomOut: () => rfInstance?.zoomOut({ duration: 200 }),
     onFitView: () => rfInstance?.fitView({ duration: 400 }),
     onOpenSearch: () => setSearchOpen(true),
+    onOpenPreview,
   });
 
   const onPaneClick = useCallback(
