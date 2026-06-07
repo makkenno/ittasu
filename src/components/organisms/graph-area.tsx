@@ -403,6 +403,16 @@ export function GraphArea({
         performDelete: ({ context }) => {
           const { nodesToDelete } = context;
           if (!nodesToDelete || nodesToDelete.size === 0) return;
+
+          const yankData = exportSelectedNodes(
+            taskNodes,
+            taskEdges,
+            nodesToDelete,
+          );
+          navigator.clipboard
+            .writeText(JSON.stringify(yankData, null, 2))
+            .catch(() => {});
+
           const nextSelectionId = findNextSelectionAfterDelete(
             nodesToDelete,
             taskNodes,
@@ -416,8 +426,8 @@ export function GraphArea({
           const count = nodesToDelete.size;
           addToast(
             count > 1
-              ? `${count} 件のタスクを削除しました（u で元に戻す）`
-              : "タスクを削除しました（u で元に戻す）",
+              ? `${count} 件のタスクを削除しました（u で元に戻す、p で貼り付け）`
+              : "タスクを削除しました（u で元に戻す、p で貼り付け）",
             "success",
           );
         },
