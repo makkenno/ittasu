@@ -48,7 +48,9 @@ interface TaskStore {
   addChildTask: (
     position?: { x: number; y: number },
     connectFromIds?: string[],
-  ) => void;
+    connectToIds?: string[],
+    removeEdgeIds?: string[],
+  ) => string;
 
   addTemplate: (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
@@ -174,6 +176,8 @@ export const useTaskStore = create<TaskStore>()(
         addChildTask: (
           position: { x: number; y: number } = { x: 100, y: 100 },
           connectFromIds: string[] = [],
+          connectToIds: string[] = [],
+          removeEdgeIds: string[] = [],
         ) => {
           const { currentTaskId, currentProjectId } = get();
           const now = Date.now();
@@ -191,18 +195,31 @@ export const useTaskStore = create<TaskStore>()(
             completedAt: null,
           };
 
-          const newEdges: TaskEdge[] = connectFromIds.map((source, i) => ({
-            id: `edge-${now}-${i}`,
+          const incomingEdges: TaskEdge[] = connectFromIds.map((source, i) => ({
+            id: `edge-${now}-in-${i}`,
             source,
             target: newTaskId,
             parentId: currentTaskId,
           }));
+          const outgoingEdges: TaskEdge[] = connectToIds.map((target, i) => ({
+            id: `edge-${now}-out-${i}`,
+            source: newTaskId,
+            target,
+            parentId: currentTaskId,
+          }));
+          const removeSet = new Set(removeEdgeIds);
 
           set((state) => ({
             selectedTaskId: newTaskId,
             nodes: [...state.nodes, newTask],
-            edges: [...state.edges, ...newEdges],
+            edges: [
+              ...state.edges.filter((e) => !removeSet.has(e.id)),
+              ...incomingEdges,
+              ...outgoingEdges,
+            ],
           }));
+
+          return newTaskId;
         },
 
         addTemplate: (template: {

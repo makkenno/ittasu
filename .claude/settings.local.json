@@ -5,9 +5,17 @@
       "Bash(pnpm remove:*)",
       "Bash(pnpm dev)",
       "Bash(pnpm exec tsc:*)",
-      "Bash(pnpm check)"
+      "Bash(pnpm check)",
+      "Bash(pnpm biome *)",
+      "Bash(pnpm exec *)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm test *)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
 }

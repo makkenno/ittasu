@@ -185,9 +185,9 @@ export function TaskDetailPage() {
   const handleAddTask = (
     position?: { x: number; y: number },
     connectFromIds?: string[],
-  ) => {
-    addChildTask(position, connectFromIds);
-  };
+    connectToIds?: string[],
+    removeEdgeIds?: string[],
+  ) => addChildTask(position, connectFromIds, connectToIds, removeEdgeIds);
 
   const handleAddTemplate = (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
@@ -206,9 +206,9 @@ export function TaskDetailPage() {
     for (const node of updatedNodes) {
       const originalNode = currentNodes.find((n) => n.id === node.id);
       if (
-        originalNode &&
-        (originalNode.position.x !== node.position.x ||
-          originalNode.position.y !== node.position.y)
+        !originalNode ||
+        originalNode.position.x !== node.position.x ||
+        originalNode.position.y !== node.position.y
       ) {
         updateTaskPosition(node.id, node.position);
       }

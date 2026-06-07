@@ -32,10 +32,23 @@ const sections: ShortcutSection[] = [
           "兄弟ノードとして追加（選択中なら隣に、無ければ末尾タスクの隣）",
       },
       {
-        combos: [["a"]],
-        description: "選択中のタスクの後ろに接続して追加",
+        combos: [["i"]],
+        description:
+          "選択中タスクの前に挿入（既存接続を分割。未選択なら先頭に挿入）",
       },
-      { combos: [["i"]], description: "接続なしの新規タスクを追加" },
+      {
+        combos: [["a"]],
+        description:
+          "選択中タスクの後ろに挿入（既存接続を分割。未選択なら末尾に挿入）",
+      },
+      {
+        combos: [["Shift", "I"]],
+        description: "常に先頭にタスクを挿入（新タスクが新しい開始ノード）",
+      },
+      {
+        combos: [["Shift", "A"]],
+        description: "常に末尾にタスクを挿入（新タスクが新しい終端ノード）",
+      },
       { combos: [["Enter"]], description: "選択中タスクの詳細画面を開く" },
       {
         combos: [["r"]],

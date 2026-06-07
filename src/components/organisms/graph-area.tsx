@@ -29,6 +29,7 @@ import {
   findFreePosition,
   findNextSelectionAfterDelete,
   findPredecessors,
+  findStartNode,
   getLayoutedElements,
 } from "../../lib/graph-utils";
 import { useToastStore } from "../../stores/toast-store";
@@ -59,7 +60,9 @@ interface GraphAreaProps {
   onAddTask?: (
     position?: { x: number; y: number },
     connectFromIds?: string[],
-  ) => void;
+    connectToIds?: string[],
+    removeEdgeIds?: string[],
+  ) => string;
   onAddTemplate?: (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
     edges: { sourceIndex: number; targetIndex: number }[];
@@ -144,6 +147,47 @@ export function GraphArea({
     [rfInstance],
   );
 
+  const formatNodes = useCallback(
+    (nodesForLayout: TaskNodeType[], edgesForLayout: TaskEdge[]) => {
+      if (!rfInstance) return;
+
+      const nodeDimensions = new Map<
+        string,
+        { width: number; height: number }
+      >();
+      const rfNodes = rfInstance.getNodes();
+      for (const node of rfNodes) {
+        if (node.width && node.height) {
+          nodeDimensions.set(node.id, {
+            width: node.width,
+            height: node.height,
+          });
+        }
+      }
+
+      const layoutedNodes = getLayoutedElements(
+        nodesForLayout,
+        edgesForLayout,
+        nodeDimensions,
+      );
+      onTaskNodesChange?.(layoutedNodes);
+
+      // Fit view after layout adjustment
+      setTimeout(() => {
+        rfInstance.fitView({ duration: 800 });
+      }, 50);
+    },
+    [onTaskNodesChange, rfInstance],
+  );
+
+  const handleFormat = useCallback(() => {
+    formatNodes(taskNodes, taskEdges);
+  }, [formatNodes, taskNodes, taskEdges]);
+
+  const pendingFormatIdsRef = useRef<Set<string>>(new Set());
+  const handleFormatRef = useRef(handleFormat);
+  handleFormatRef.current = handleFormat;
+
   const handleAddTaskAtViewCenter = useCallback(() => {
     if (rfInstance && containerRef.current) {
       const { top, left, width, height } =
@@ -164,32 +208,136 @@ export function GraphArea({
     }
   }, [rfInstance, onAddTask, panToPosition]);
 
-  const handleAddConnectedAfterSelected = useCallback(() => {
+  const handleInsertAtStart = useCallback(() => {
     if (!rfInstance) {
       onAddTask?.();
       return;
     }
-    const existingNodes = rfInstance.getNodes();
-    const selected = selectedTask
-      ? existingNodes.find((n) => n.id === selectedTask.id)
-      : null;
-    if (!selected) {
+    const start = findStartNode(taskNodes, taskEdges, parentId);
+    if (!start) {
       handleAddTaskAtViewCenter();
       return;
     }
+    const existingNodes = rfInstance.getNodes();
+    const startRf = existingNodes.find((n) => n.id === start.id);
     const base = {
-      x: selected.position.x + (selected.width ?? 250) + 80,
-      y: selected.position.y,
+      x: start.position.x - (startRf?.width ?? 250) - 80,
+      y: start.position.y,
     };
     const newPosition = findFreePosition(base, existingNodes);
-    onAddTask?.(newPosition, [selected.id]);
+    const newId = onAddTask?.(newPosition, [], [start.id], []);
     panToPosition(newPosition);
+    if (newId) pendingFormatIdsRef.current.add(newId);
   }, [
     rfInstance,
-    selectedTask,
+    taskNodes,
+    taskEdges,
+    parentId,
     onAddTask,
     panToPosition,
     handleAddTaskAtViewCenter,
+  ]);
+
+  const handleInsertAtEnd = useCallback(() => {
+    if (!rfInstance) {
+      onAddTask?.();
+      return;
+    }
+    const end = findEndNode(taskNodes, taskEdges, parentId);
+    if (!end) {
+      handleAddTaskAtViewCenter();
+      return;
+    }
+    const existingNodes = rfInstance.getNodes();
+    const endRf = existingNodes.find((n) => n.id === end.id);
+    const base = {
+      x: end.position.x + (endRf?.width ?? 250) + 80,
+      y: end.position.y,
+    };
+    const newPosition = findFreePosition(base, existingNodes);
+    const newId = onAddTask?.(newPosition, [end.id], [], []);
+    panToPosition(newPosition);
+    if (newId) pendingFormatIdsRef.current.add(newId);
+  }, [
+    rfInstance,
+    taskNodes,
+    taskEdges,
+    parentId,
+    onAddTask,
+    panToPosition,
+    handleAddTaskAtViewCenter,
+  ]);
+
+  const handleInsertBeforeSelected = useCallback(() => {
+    if (!rfInstance) {
+      onAddTask?.();
+      return;
+    }
+    if (!selectedTask) {
+      handleInsertAtStart();
+      return;
+    }
+    const target = selectedTask;
+    const incomingEdges = taskEdges.filter(
+      (e) => e.parentId === parentId && e.target === target.id,
+    );
+    const predIds = incomingEdges.map((e) => e.source);
+    const removeEdgeIds = incomingEdges.map((e) => e.id);
+
+    const existingNodes = rfInstance.getNodes();
+    const targetRf = existingNodes.find((n) => n.id === target.id);
+    const base = {
+      x: target.position.x - (targetRf?.width ?? 250) - 80,
+      y: target.position.y,
+    };
+    const newPosition = findFreePosition(base, existingNodes);
+    const newId = onAddTask?.(newPosition, predIds, [target.id], removeEdgeIds);
+    panToPosition(newPosition);
+    if (newId) pendingFormatIdsRef.current.add(newId);
+  }, [
+    rfInstance,
+    selectedTask,
+    taskEdges,
+    parentId,
+    onAddTask,
+    panToPosition,
+    handleInsertAtStart,
+  ]);
+
+  const handleInsertAfterSelected = useCallback(() => {
+    if (!rfInstance) {
+      onAddTask?.();
+      return;
+    }
+    if (!selectedTask) {
+      handleInsertAtEnd();
+      return;
+    }
+    const source = selectedTask;
+    const outgoingEdges = taskEdges.filter(
+      (e) => e.parentId === parentId && e.source === source.id,
+    );
+    const succIds = outgoingEdges.map((e) => e.target);
+    const removeEdgeIds = outgoingEdges.map((e) => e.id);
+
+    const existingNodes = rfInstance.getNodes();
+    const sourceRf = existingNodes.find((n) => n.id === source.id);
+    const base = {
+      x: source.position.x + (sourceRf?.width ?? 250) + 80,
+      y: source.position.y,
+    };
+    const newPosition = findFreePosition(base, existingNodes);
+    const newId = onAddTask?.(newPosition, [source.id], succIds, removeEdgeIds);
+    panToPosition(newPosition);
+    if (newId) pendingFormatIdsRef.current.add(newId);
+  }, [
+    rfInstance,
+    selectedTask,
+    taskEdges,
+    parentId,
+    onAddTask,
+    panToPosition,
+    handleInsertAtEnd,
   ]);
 
   const handleAddSibling = useCallback(() => {
@@ -399,6 +547,23 @@ export function GraphArea({
     onAddEdge,
   });
 
+  const handleNodesChangeWithFormat = useCallback(
+    (changes: Parameters<typeof handleNodesChange>[0]) => {
+      handleNodesChange(changes);
+      const pending = pendingFormatIdsRef.current;
+      if (pending.size === 0) return;
+      let trigger = false;
+      for (const change of changes) {
+        if (change.type === "dimensions" && pending.has(change.id)) {
+          pending.delete(change.id);
+          trigger = true;
+        }
+      }
+      if (trigger) handleFormatRef.current();
+    },
+    [handleNodesChange],
+  );
+
   const handleSelectionChange = useCallback(
     ({ nodes }: { nodes: Node[] }) => {
       const ids = nodes.map((n) => n.id);
@@ -444,31 +609,6 @@ export function GraphArea({
     [send],
   );
 
-  const handleFormat = useCallback(() => {
-    if (!rfInstance) return;
-
-    const nodeDimensions = new Map<string, { width: number; height: number }>();
-    const nodes = rfInstance.getNodes();
-
-    for (const node of nodes) {
-      if (node.width && node.height) {
-        nodeDimensions.set(node.id, { width: node.width, height: node.height });
-      }
-    }
-
-    const layoutedNodes = getLayoutedElements(
-      taskNodes,
-      taskEdges,
-      nodeDimensions,
-    );
-    onTaskNodesChange?.(layoutedNodes);
-
-    // Fit view after layout adjustment
-    setTimeout(() => {
-      rfInstance.fitView({ duration: 800 });
-    }, 50);
-  }, [taskNodes, taskEdges, onTaskNodesChange, rfInstance]);
-
   const handleSelectTaskFromKey = useCallback(
     (taskId: string | null) => {
       if (taskId && rfInstance) {
@@ -510,7 +650,10 @@ export function GraphArea({
       }
     },
     onAddTask: () => send({ type: "ADD_TASK" }),
-    onAddConnectedAfter: handleAddConnectedAfterSelected,
+    onInsertBefore: handleInsertBeforeSelected,
+    onInsertAfter: handleInsertAfterSelected,
+    onInsertAtStart: handleInsertAtStart,
+    onInsertAtEnd: handleInsertAtEnd,
     onAddSiblingOfEnd: handleAddSibling,
     onEscape: () => {
       if (edgeSourceId !== null) {
@@ -662,7 +805,7 @@ export function GraphArea({
       <ReactFlow
         nodes={reactFlowNodes}
         edges={reactFlowEdges}
-        onNodesChange={handleNodesChange}
+        onNodesChange={handleNodesChangeWithFormat}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}

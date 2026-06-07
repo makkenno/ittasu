@@ -13,7 +13,10 @@ interface UseKeyboardShortcutsProps {
   edges: TaskEdge[];
   onDelete?: () => void;
   onAddTask?: () => void;
-  onAddConnectedAfter?: () => void;
+  onInsertBefore?: () => void;
+  onInsertAfter?: () => void;
+  onInsertAtStart?: () => void;
+  onInsertAtEnd?: () => void;
   onAddSiblingOfEnd?: () => void;
   onEscape?: () => void;
   onToggleSelectionMode?: () => void;
@@ -115,7 +118,10 @@ export function useKeyboardShortcuts({
   edges,
   onDelete,
   onAddTask,
-  onAddConnectedAfter,
+  onInsertBefore,
+  onInsertAfter,
+  onInsertAtStart,
+  onInsertAtEnd,
   onAddSiblingOfEnd,
   onEscape,
   onToggleSelectionMode,
@@ -230,11 +236,13 @@ export function useKeyboardShortcuts({
       Escape: handle(() => onEscape?.()),
       "Control+[": handle(() => onEscape?.()),
       o: handle(() => (onAddSiblingOfEnd ?? onAddTask)?.()),
-      a: handle(() => (onAddConnectedAfter ?? onAddTask)?.()),
+      a: handle(() => (onInsertAfter ?? onAddTask)?.()),
+      "Shift+a": handle(() => (onInsertAtEnd ?? onAddTask)?.()),
       Enter: handle(() => {
         if (selectedTaskId) onOpenDetail?.(selectedTaskId);
       }),
-      i: handle(() => onAddTask?.()),
+      i: handle(() => (onInsertBefore ?? onAddTask)?.()),
+      "Shift+i": handle(() => (onInsertAtStart ?? onAddTask)?.()),
       r: handle(() => {
         if (selectedTaskId) onEditTitle?.(selectedTaskId);
         else onEditCurrentTitle?.();
@@ -265,7 +273,10 @@ export function useKeyboardShortcuts({
     edges,
     onDelete,
     onAddTask,
-    onAddConnectedAfter,
+    onInsertBefore,
+    onInsertAfter,
+    onInsertAtStart,
+    onInsertAtEnd,
     onAddSiblingOfEnd,
     onEscape,
     onToggleSelectionMode,
