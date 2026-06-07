@@ -359,8 +359,9 @@ export function GraphArea({
       y: reference.position.y + (refRf?.height ?? 100) + 60,
     };
     const newPosition = findFreePosition(base, existingNodes);
-    onAddTask?.(newPosition, predecessors);
+    const newId = onAddTask?.(newPosition, predecessors);
     panToPosition(newPosition);
+    if (newId) pendingFormatIdsRef.current.add(newId);
   }, [
     rfInstance,
     selectedTask,
