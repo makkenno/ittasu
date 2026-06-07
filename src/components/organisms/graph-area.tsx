@@ -32,6 +32,7 @@ import {
   findStartNode,
   getLayoutedElements,
 } from "../../lib/graph-utils";
+import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode as TaskNodeType } from "../../types/task";
@@ -170,7 +171,14 @@ export function GraphArea({
         edgesForLayout,
         nodeDimensions,
       );
-      onTaskNodesChange?.(layoutedNodes);
+
+      const temporalApi = useTaskStore.temporal.getState();
+      temporalApi.pause();
+      try {
+        onTaskNodesChange?.(layoutedNodes);
+      } finally {
+        temporalApi.resume();
+      }
 
       // Fit view after layout adjustment
       setTimeout(() => {
