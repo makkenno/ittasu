@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useIsMobile } from "../../lib/use-is-mobile";
 import { cn } from "../../lib/utils";
 import { CopyExportPromptButton } from "../molecules/memo/copy-export-prompt-button";
 import { CopyMemoButton } from "../molecules/memo/copy-memo-button";
@@ -24,6 +25,7 @@ export function MemoArea({
 }: MemoAreaProps) {
   const [mode, setMode] = useState<TabMode>("edit");
   const lastFocusTokenRef = useRef(focusToken);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (focusToken !== lastFocusTokenRef.current && mode === "preview") {
@@ -31,6 +33,9 @@ export function MemoArea({
     }
     lastFocusTokenRef.current = focusToken;
   }, [focusToken, mode]);
+
+  // モバイルでは分割モードを使わないため、編集扱いにする
+  const effectiveMode = isMobile && mode === "split" ? "edit" : mode;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -41,19 +46,20 @@ export function MemoArea({
             onClick={() => setMode("edit")}
             className={cn(
               "px-4 py-2 font-medium transition-colors",
-              mode === "edit"
+              effectiveMode === "edit"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-600 hover:text-gray-800",
             )}
           >
             編集
           </button>
+          {/* 分割モードはモバイルでは表示しない（画面幅が狭く実用的でないため） */}
           <button
             type="button"
             onClick={() => setMode("split")}
             className={cn(
-              "px-4 py-2 font-medium transition-colors",
-              mode === "split"
+              "hidden md:block px-4 py-2 font-medium transition-colors",
+              effectiveMode === "split"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-600 hover:text-gray-800",
             )}
@@ -65,7 +71,7 @@ export function MemoArea({
             onClick={() => setMode("preview")}
             className={cn(
               "px-4 py-2 font-medium transition-colors",
-              mode === "preview"
+              effectiveMode === "preview"
                 ? "border-b-2 border-blue-500 text-blue-600"
                 : "text-gray-600 hover:text-gray-800",
             )}
@@ -80,15 +86,15 @@ export function MemoArea({
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {mode === "edit" && (
+        {effectiveMode === "edit" && (
           <MarkdownEditor
             value={memo}
             onChange={onMemoChange}
             focusToken={focusToken}
           />
         )}
-        {mode === "preview" && <MarkdownPreview value={memo} />}
-        {mode === "split" && (
+        {effectiveMode === "preview" && <MarkdownPreview value={memo} />}
+        {effectiveMode === "split" && (
           <div className="flex h-full">
             <div className="flex-1 min-w-0 border-r">
               <MarkdownEditor

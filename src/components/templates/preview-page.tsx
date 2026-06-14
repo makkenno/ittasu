@@ -32,6 +32,10 @@ export function PreviewPage({
   const addToast = useToastStore((s) => s.addToast);
   const isMobile = useIsMobile();
 
+  // モバイルでは分割モードを使わないため、プレビュー扱いにする
+  // （デスクトップで分割中に画面幅が狭まったケースに対応）
+  const effectiveMode = isMobile && mode === "split" ? "preview" : mode;
+
   const handleCopy = useCallback(async () => {
     const markdown = generateMarkdown(nodes, edges, currentTaskId);
     try {
@@ -148,14 +152,14 @@ export function PreviewPage({
     <div className="flex flex-col h-[100dvh] bg-white">
       <PreviewHeader
         onBack={onBack}
-        mode={mode}
+        mode={effectiveMode}
         onModeChange={setMode}
         onCopy={handleCopy}
         copied={copied}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {mode === "split" ? (
+        {effectiveMode === "split" ? (
           <>
             <div className="flex-1 min-w-0 overflow-y-auto border-r">
               {renderTasks()}
@@ -179,7 +183,7 @@ export function PreviewPage({
               id="preview-scroll-container"
               className="flex-1 overflow-y-auto"
             >
-              {mode === "preview" ? (
+              {effectiveMode === "preview" ? (
                 <MarkdownPreview
                   value={markdownValue}
                   className="h-auto overflow-visible"
@@ -189,7 +193,7 @@ export function PreviewPage({
               )}
             </div>
 
-            {mode === "preview" && (
+            {effectiveMode === "preview" && (
               <div className="hidden lg:block w-64 border-l border-gray-200 bg-gray-50/50">
                 <TableOfContents containerId="preview-scroll-container" />
               </div>

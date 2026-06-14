@@ -40,13 +40,14 @@ export function PreviewHeader({
             )}
           >
             <Eye className="w-4 h-4" />
-            プレビュー
+            <span className="hidden md:inline">プレビュー</span>
           </button>
+          {/* 分割モードはモバイルでは表示しない（画面幅が狭く実用的でないため） */}
           <button
             type="button"
             onClick={() => onModeChange("split")}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+              "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
               mode === "split"
                 ? "bg-white text-gray-900 shadow-sm"
                 : "text-gray-500 hover:text-gray-700",
@@ -66,7 +67,7 @@ export function PreviewHeader({
             )}
           >
             <Pencil className="w-4 h-4" />
-            編集
+            <span className="hidden md:inline">編集</span>
           </button>
         </div>
       </div>
