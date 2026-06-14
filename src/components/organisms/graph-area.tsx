@@ -33,7 +33,7 @@ import {
   findStartNode,
   getLayoutedElements,
 } from "../../lib/graph-utils";
-import { useIsMobile } from "../../lib/use-is-mobile";
+import { useIsCompactGraph, useIsMobile } from "../../lib/use-is-mobile";
 import { cn } from "../../lib/utils";
 import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
@@ -346,6 +346,7 @@ export function GraphArea({
   onOpenPreview,
 }: GraphAreaProps) {
   const isMobile = useIsMobile();
+  const isCompactGraph = useIsCompactGraph();
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [edgeSourceId, setEdgeSourceId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -959,7 +960,7 @@ export function GraphArea({
         return;
       }
 
-      if (isMobile) {
+      if (isCompactGraph) {
         send({ type: "PANE_CLICK" });
         setMobileActionsOpen(false);
         return;
@@ -983,7 +984,7 @@ export function GraphArea({
         send({ type: "PANE_CLICK" });
       }
     },
-    [rfInstance, onAddTask, isMobile, isSelectionMode, send],
+    [rfInstance, onAddTask, isCompactGraph, isSelectionMode, send],
   );
 
   const handleTemplateSelect = useCallback(
@@ -1074,7 +1075,7 @@ export function GraphArea({
         fitView
       >
         <Background />
-        <Controls className="hidden sm:flex" />
+        <Controls className="hidden lg:flex" />
         {selectedTask && !isSelectionMode && !isMobile && (
           <TaskDetailPanel
             ref={taskDetailPanelRef}
@@ -1155,7 +1156,7 @@ export function GraphArea({
         />
       )}
 
-      <div className="absolute left-4 top-4 z-50 hidden flex-col gap-2 sm:flex">
+      <div className="absolute left-4 top-4 z-50 hidden flex-col gap-2 lg:flex">
         <button
           type="button"
           onClick={() => send({ type: "TOGGLE_MODE" })}
@@ -1200,7 +1201,7 @@ export function GraphArea({
       </div>
 
       {isSelectionMode && selectedNodeIds.size > 0 && (
-        <div className="absolute bottom-12 right-4 z-50 hidden flex-col items-end gap-2 sm:flex">
+        <div className="absolute bottom-12 right-4 z-50 hidden flex-col items-end gap-2 lg:flex">
           <button
             type="button"
             onClick={handleExportSelected}
@@ -1242,7 +1243,7 @@ export function GraphArea({
           <button
             type="button"
             onClick={handleAddTaskAtViewCenter}
-            className="absolute bottom-12 right-4 hidden items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-lg transition-colors hover:bg-blue-600 sm:flex"
+            className="absolute bottom-12 right-4 hidden items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-lg transition-colors hover:bg-blue-600 lg:flex"
             title="新しいタスクを追加"
           >
             <Plus className="w-6 h-6 sm:w-5 sm:h-5" />
@@ -1252,7 +1253,7 @@ export function GraphArea({
           <button
             type="button"
             onClick={() => send({ type: "OPEN_TEMPLATE" })}
-            className="absolute bottom-24 right-4 hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 shadow-lg transition-colors hover:bg-gray-50 sm:flex"
+            className="absolute bottom-24 right-4 hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 shadow-lg transition-colors hover:bg-gray-50 lg:flex"
             title="テンプレート"
           >
             <LayoutTemplate className="w-6 h-6 sm:w-5 sm:h-5" />
@@ -1261,7 +1262,7 @@ export function GraphArea({
         </>
       )}
 
-      {isMobile && isSelectionMode && (
+      {isCompactGraph && isSelectionMode && (
         <MobileSelectionToolbar
           selectedCount={selectedNodeIds.size}
           onExit={() => send({ type: "TOGGLE_MODE" })}
@@ -1271,7 +1272,7 @@ export function GraphArea({
         />
       )}
 
-      {isMobile && !isSelectionMode && !selectedTask && (
+      {isCompactGraph && !isSelectionMode && !selectedTask && (
         <MobileGraphToolbar
           moreOpen={mobileActionsOpen}
           onToggleSelection={() => send({ type: "TOGGLE_MODE" })}
