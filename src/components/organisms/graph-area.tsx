@@ -695,7 +695,7 @@ export function GraphArea({
             onNodeDoubleClick?.(event.nodeId);
           }
         },
-        notifyAddTask: handleAddTaskAtViewCenter,
+        notifyAddTask: handleInsertAtEnd,
         performDelete: ({ context }) => {
           const { nodesToDelete } = context;
           if (!nodesToDelete || nodesToDelete.size === 0) return;
@@ -1316,9 +1316,9 @@ export function GraphArea({
         <>
           <button
             type="button"
-            onClick={handleAddTaskAtViewCenter}
+            onClick={handleInsertAtEnd}
             className="absolute bottom-12 right-4 hidden items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-lg transition-colors hover:bg-blue-600 lg:flex"
-            title="新しいタスクを追加"
+            title="末尾にタスクを追加"
           >
             <Plus className="w-6 h-6 sm:w-5 sm:h-5" />
             <span className="font-medium hidden sm:inline">タスクを追加</span>
@@ -1361,7 +1361,7 @@ export function GraphArea({
             setMobileActionsOpen(false);
             send({ type: "OPEN_TEMPLATE" });
           }}
-          onAddTask={handleAddTaskAtViewCenter}
+          onAddTask={handleInsertAtEnd}
         />
       )}
     </div>
