@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isEscapeKey } from "../../../lib/keyboard";
+import { isEscapeKey, wrapSelectionIndex } from "../../../lib/keyboard";
 import type { TaskNode } from "../../../types/task";
 
 interface TaskSearchDialogProps {
@@ -60,12 +60,12 @@ export function TaskSearchDialog({
     }
     if (isMoveDown(e)) {
       e.preventDefault();
-      setCursor((c) => Math.min(matches.length - 1, c + 1));
+      setCursor((c) => wrapSelectionIndex(c, matches.length, 1));
       return;
     }
     if (isMoveUp(e)) {
       e.preventDefault();
-      setCursor((c) => Math.max(0, c - 1));
+      setCursor((c) => wrapSelectionIndex(c, matches.length, -1));
     }
   };
 
