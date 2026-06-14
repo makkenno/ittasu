@@ -17,7 +17,11 @@ import { useToastStore } from "../../stores/toast-store";
 import type { TemplateTask } from "../../types/template";
 import { ShortcutHelpDialog } from "../molecules/common/shortcut-help-dialog";
 import { GraphArea } from "../organisms/graph-area";
-import { Header, type HeaderHandle } from "../organisms/header";
+import {
+  Header,
+  type HeaderHandle,
+  type TaskHierarchyItem,
+} from "../organisms/header";
 import { MemoArea, type MemoAreaHandle } from "../organisms/memo-area";
 import { Sidebar, type SidebarHandle } from "../organisms/sidebar";
 import { PreviewPage } from "./preview-page";
@@ -28,6 +32,7 @@ type FocusArea = "graph" | "sidebar";
 export function TaskDetailPage() {
   const currentTaskId = useTaskStore((state) => state.currentTaskId);
   const currentProjectId = useTaskStore((state) => state.currentProjectId);
+  const projects = useTaskStore((state) => state.projects);
   const nodes = useTaskStore((state) => state.nodes);
   const edges = useTaskStore((state) => state.edges);
   const selectedTaskId = useTaskStore((state) => state.selectedTaskId);
@@ -146,6 +151,31 @@ export function TaskDetailPage() {
   const title = currentTask?.title || "無題";
   const completed = currentTask?.completed ?? false;
   const memo = currentTask?.memo ?? "";
+  const currentProject = projects.find(
+    (project) => project.id === currentProjectId,
+  );
+  const ancestorTasks = [];
+  const visitedTaskIds = new Set<string>();
+  let ancestorId = currentTask?.parentId ?? null;
+
+  while (ancestorId && !visitedTaskIds.has(ancestorId)) {
+    visitedTaskIds.add(ancestorId);
+    const ancestor = nodes.find((node) => node.id === ancestorId);
+    if (!ancestor) break;
+    ancestorTasks.unshift(ancestor);
+    ancestorId = ancestor.parentId;
+  }
+
+  const hierarchy: TaskHierarchyItem[] = [
+    {
+      id: null,
+      label: currentProject?.name ?? "プロジェクト",
+    },
+    ...ancestorTasks.map((task) => ({
+      id: task.id,
+      label: task.title || "無題",
+    })),
+  ];
 
   const selectedTask = nodes.find((n) => n.id === selectedTaskId) ?? null;
 
@@ -367,10 +397,12 @@ ${memoContent}`;
         currentNodes={currentNodes}
         currentEdges={currentEdges}
         selectedTask={selectedTask}
+        hierarchy={hierarchy}
         onTitleChange={handleTitleChange}
         onToggleComplete={handleToggleComplete}
         onBackClick={handleBackClick}
         onPreviewClick={handlePreviewClick}
+        onHierarchyNavigate={setCurrentTaskId}
         onNodesChange={handleNodesChange}
         onNodeClick={handleNodeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
@@ -412,6 +444,8 @@ ${memoContent}`;
             title={title}
             completed={completed}
             hasParent={hasParent}
+            hierarchy={hierarchy}
+            onHierarchyNavigate={setCurrentTaskId}
             onTitleChange={handleTitleChange}
             onToggleComplete={handleToggleComplete}
             onBackClick={handleBackClick}

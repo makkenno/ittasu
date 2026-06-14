@@ -5,7 +5,7 @@ import type { TaskEdge } from "../../types/edge";
 import type { TaskNode } from "../../types/task";
 import type { TemplateTask } from "../../types/template";
 import { GraphArea } from "../organisms/graph-area";
-import { Header } from "../organisms/header";
+import { Header, type TaskHierarchyItem } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
 import { Sidebar } from "../organisms/sidebar";
 
@@ -21,11 +21,13 @@ interface TaskDetailMobileLayoutProps {
   currentNodes: TaskNode[];
   currentEdges: TaskEdge[];
   selectedTask: TaskNode | null;
+  hierarchy: TaskHierarchyItem[];
 
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
   onBackClick: () => void;
   onPreviewClick: () => void;
+  onHierarchyNavigate: (taskId: string | null) => void;
 
   onNodesChange: (nodes: TaskNode[]) => void;
   onNodeClick: (taskId: string) => void;
@@ -70,12 +72,14 @@ interface MobileTopBarProps {
   title: string;
   completed: boolean;
   tab: MobileTab;
+  hierarchy: TaskHierarchyItem[];
   onOpenSidebar: () => void;
   onTabChange: (tab: MobileTab) => void;
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
   onBackClick: () => void;
   onPreviewClick: () => void;
+  onHierarchyNavigate: (taskId: string | null) => void;
 }
 
 function MobileTopBar({
@@ -84,12 +88,14 @@ function MobileTopBar({
   title,
   completed,
   tab,
+  hierarchy,
   onOpenSidebar,
   onTabChange,
   onTitleChange,
   onToggleComplete,
   onBackClick,
   onPreviewClick,
+  onHierarchyNavigate,
 }: MobileTopBarProps) {
   if (isRoot) {
     return (
@@ -113,6 +119,8 @@ function MobileTopBar({
         title={title}
         completed={completed}
         hasParent={hasParent}
+        hierarchy={hierarchy}
+        onHierarchyNavigate={onHierarchyNavigate}
         onTitleChange={onTitleChange}
         onToggleComplete={onToggleComplete}
         onBackClick={onBackClick}
@@ -223,12 +231,14 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
         title={props.title}
         completed={props.completed}
         tab={mobileTab}
+        hierarchy={props.hierarchy}
         onOpenSidebar={() => setMobileSidebarOpen(true)}
         onTabChange={setMobileTab}
         onTitleChange={props.onTitleChange}
         onToggleComplete={props.onToggleComplete}
         onBackClick={props.onBackClick}
         onPreviewClick={props.onPreviewClick}
+        onHierarchyNavigate={props.onHierarchyNavigate}
       />
 
       <div
