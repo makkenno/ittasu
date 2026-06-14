@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Copy,
   Folder,
+  Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -32,8 +33,9 @@ interface ProjectListItemProps {
   editingName: string;
   copied: boolean;
   canDelete: boolean;
+  isMobile?: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
-  itemRef: RefObject<HTMLButtonElement | null>;
+  itemRef: RefObject<HTMLDivElement | null>;
   onSelect: () => void;
   onStartEdit: () => void;
   onEditingNameChange: (name: string) => void;
@@ -41,6 +43,114 @@ interface ProjectListItemProps {
   onCancelEdit: () => void;
   onCopy: () => void;
   onRequestDelete: () => void;
+}
+
+function ProjectNameInput({
+  inputRef,
+  editingName,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  inputRef: RefObject<HTMLInputElement | null>;
+  editingName: string;
+  onChange: (name: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const { handleFocus, handleBlur } = useEditSession();
+  return (
+    <input
+      ref={inputRef}
+      className="flex-1 text-sm bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
+      value={editingName}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={() => {
+        onSubmit();
+        handleBlur();
+      }}
+      onKeyDown={(e) => {
+        if (e.nativeEvent.isComposing) return;
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onSubmit();
+        }
+        if (isEscapeKey(e)) onCancel();
+      }}
+      onFocus={(e) => {
+        handleFocus();
+        e.target.select();
+      }}
+    />
+  );
+}
+
+function ProjectItemActions({
+  isMobile,
+  copied,
+  canDelete,
+  onStartEdit,
+  onCopy,
+  onRequestDelete,
+}: {
+  isMobile: boolean;
+  copied: boolean;
+  canDelete: boolean;
+  onStartEdit: () => void;
+  onCopy: () => void;
+  onRequestDelete: () => void;
+}) {
+  const visibility = isMobile
+    ? "opacity-100"
+    : "opacity-0 group-hover:opacity-100";
+  const iconSize = isMobile ? "w-4 h-4" : "w-3.5 h-3.5";
+  const btnBase = isMobile
+    ? "w-8 h-8 flex items-center justify-center rounded flex-shrink-0 transition-colors"
+    : "flex-shrink-0 transition-all";
+
+  return (
+    <>
+      {isMobile && (
+        <button
+          type="button"
+          onClick={onStartEdit}
+          className={`${btnBase} text-gray-400 hover:text-blue-500 ${visibility}`}
+          title="名前を編集"
+          aria-label="名前を編集"
+        >
+          <Pencil className={iconSize} />
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onCopy}
+        className={`${btnBase} ${
+          copied
+            ? "text-green-600 opacity-100"
+            : `text-gray-400 hover:text-blue-500 ${visibility}`
+        }`}
+        title="マークダウンとしてコピー"
+        aria-label="マークダウンとしてコピー"
+      >
+        {copied ? (
+          <Check className={iconSize} />
+        ) : (
+          <Copy className={iconSize} />
+        )}
+      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={onRequestDelete}
+          className={`${btnBase} text-gray-400 hover:text-red-500 ${visibility}`}
+          title="削除"
+          aria-label="削除"
+        >
+          <Trash2 className={iconSize} />
+        </button>
+      )}
+    </>
+  );
 }
 
 function ProjectListItem({
@@ -53,6 +163,7 @@ function ProjectListItem({
   editingName,
   copied,
   canDelete,
+  isMobile = false,
   inputRef,
   itemRef,
   onSelect,
@@ -63,56 +174,45 @@ function ProjectListItem({
   onCopy,
   onRequestDelete,
 }: ProjectListItemProps) {
-  const { handleFocus, handleBlur } = useEditSession();
   const cursorClasses =
     showCursor && isCursor
       ? "ring-2 ring-blue-400 ring-offset-1 ring-offset-gray-50"
       : "";
+  const iconSize = isMobile ? "w-4 h-4" : "w-3.5 h-3.5";
+
   return (
-    <button
+    <div
       ref={itemRef}
-      type="button"
-      className={`group w-full text-left flex items-center gap-1.5 mx-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+      className={`group flex items-center gap-1.5 mx-2 px-2 py-1.5 rounded-md transition-colors ${
         isActive
           ? "bg-blue-100 text-blue-700"
           : "text-gray-600 hover:bg-gray-100"
       } ${cursorClasses}`}
-      onClick={onSelect}
-      onDoubleClick={(e) => {
-        e.preventDefault();
-        onStartEdit();
-      }}
     >
       <Folder
-        className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-blue-500" : "text-gray-400"}`}
+        className={`${iconSize} flex-shrink-0 ${isActive ? "text-blue-500" : "text-gray-400"}`}
       />
       {isEditing ? (
-        <input
-          ref={inputRef}
-          className="flex-1 text-sm bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
-          value={editingName}
-          onChange={(e) => onEditingNameChange(e.target.value)}
-          onBlur={() => {
-            onRenameSubmit();
-            handleBlur();
-          }}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) return;
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onRenameSubmit();
-            }
-            if (isEscapeKey(e)) onCancelEdit();
-          }}
-          onClick={(e) => e.stopPropagation()}
-          onFocus={(e) => {
-            handleFocus();
-            e.target.select();
-          }}
+        <ProjectNameInput
+          inputRef={inputRef}
+          editingName={editingName}
+          onChange={onEditingNameChange}
+          onSubmit={onRenameSubmit}
+          onCancel={onCancelEdit}
         />
       ) : (
         <>
-          <span className="flex-1 text-sm truncate">{project.name}</span>
+          <button
+            type="button"
+            className="flex-1 min-w-0 text-left text-sm truncate cursor-pointer"
+            onClick={onSelect}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              onStartEdit();
+            }}
+          >
+            {project.name}
+          </button>
           {taskCount > 0 && (
             <span
               className={`text-xs flex-shrink-0 ${isActive ? "text-blue-400" : "text-gray-400"}`}
@@ -120,41 +220,17 @@ function ProjectListItem({
               {taskCount}
             </span>
           )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCopy();
-            }}
-            className={`opacity-0 group-hover:opacity-100 flex-shrink-0 transition-all ${
-              copied
-                ? "text-green-600 opacity-100"
-                : "text-gray-400 hover:text-blue-500"
-            }`}
-            title="マークダウンとしてコピー"
-          >
-            {copied ? (
-              <Check className="w-3.5 h-3.5" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-          </button>
-          {canDelete && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRequestDelete();
-              }}
-              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 flex-shrink-0 transition-all"
-              title="削除"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
+          <ProjectItemActions
+            isMobile={isMobile}
+            copied={copied}
+            canDelete={canDelete}
+            onStartEdit={onStartEdit}
+            onCopy={onCopy}
+            onRequestDelete={onRequestDelete}
+          />
         </>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -193,7 +269,7 @@ export function Sidebar({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [cursorIndex, setCursorIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const itemRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   useEffect(() => {
     if (editingId) {
@@ -234,8 +310,13 @@ export function Sidebar({
   const handleAddProject = useCallback(() => {
     if (collapsed) setCollapsed(false);
     const newId = `project-${Date.now()}`;
-    addProject(newId, "新しいプロジェクト");
-  }, [collapsed, addProject]);
+    const defaultName = "新しいプロジェクト";
+    addProject(newId, defaultName);
+    if (isMobile) {
+      setEditingId(newId);
+      setEditingName(defaultName);
+    }
+  }, [collapsed, addProject, isMobile]);
 
   const handleRenameSubmit = () => {
     if (editingId) {
@@ -415,6 +496,7 @@ export function Sidebar({
                 editingName={editingName}
                 copied={copiedId === project.id}
                 canDelete={projects.length > 1}
+                isMobile
                 inputRef={inputRef}
                 itemRef={{
                   get current() {
