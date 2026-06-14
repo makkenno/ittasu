@@ -120,16 +120,28 @@ function MobileTopBar({
         showMenuButton
         onMenuClick={onOpenSidebar}
       />
-      <div className="flex border-b bg-white flex-shrink-0">
+      <div
+        className="flex border-b bg-white flex-shrink-0"
+        role="tablist"
+        aria-label="タスク詳細の表示"
+      >
         <TabButton
+          id="mobile-graph-tab"
           active={tab === "graph"}
           label="グラフ"
+          controls="mobile-task-detail-panel"
           onClick={() => onTabChange("graph")}
+          onMove={() => onTabChange("memo")}
+          moveTargetId="mobile-memo-tab"
         />
         <TabButton
+          id="mobile-memo-tab"
           active={tab === "memo"}
           label="メモ"
+          controls="mobile-task-detail-panel"
           onClick={() => onTabChange("memo")}
+          onMove={() => onTabChange("graph")}
+          moveTargetId="mobile-graph-tab"
         />
       </div>
     </>
@@ -137,22 +149,51 @@ function MobileTopBar({
 }
 
 function TabButton({
+  id,
   active,
   label,
+  controls,
   onClick,
+  onMove,
+  moveTargetId,
 }: {
+  id: string;
   active: boolean;
   label: string;
+  controls: string;
   onClick: () => void;
+  onMove: () => void;
+  moveTargetId: string;
 }) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (
+      event.key !== "ArrowLeft" &&
+      event.key !== "ArrowRight" &&
+      event.key !== "Home" &&
+      event.key !== "End"
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    onMove();
+    setTimeout(() => document.getElementById(moveTargetId)?.focus(), 0);
+  };
+
   return (
     <button
+      id={id}
       type="button"
+      role="tab"
+      aria-selected={active}
+      aria-controls={controls}
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
-      className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+      onKeyDown={handleKeyDown}
+      className={`relative min-h-12 flex-1 px-4 text-sm font-semibold transition-colors duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${
         active
-          ? "border-b-2 border-blue-500 text-blue-600"
-          : "text-gray-600 hover:text-gray-800"
+          ? "bg-blue-50/60 text-blue-700 after:absolute after:inset-x-6 after:bottom-0 after:h-0.5 after:rounded-full after:bg-blue-600"
+          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
       }`}
     >
       {label}
@@ -190,7 +231,14 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
         onPreviewClick={props.onPreviewClick}
       />
 
-      <div className="flex-1 min-h-0">
+      <div
+        id="mobile-task-detail-panel"
+        role="tabpanel"
+        aria-labelledby={
+          mobileTab === "graph" ? "mobile-graph-tab" : "mobile-memo-tab"
+        }
+        className="flex-1 min-h-0"
+      >
         {showGraph ? (
           <GraphArea
             nodes={props.currentNodes}
