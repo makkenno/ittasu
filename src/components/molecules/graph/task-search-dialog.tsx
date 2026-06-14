@@ -4,30 +4,19 @@ import { isEscapeKey } from "../../../lib/keyboard";
 import type { TaskNode } from "../../../types/task";
 
 interface TaskSearchDialogProps {
-  isOpen: boolean;
   nodes: TaskNode[];
   onClose: () => void;
   onSelect: (taskId: string) => void;
 }
 
 export function TaskSearchDialog({
-  isOpen,
   nodes,
   onClose,
   onSelect,
 }: TaskSearchDialogProps) {
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      setQuery("");
-      setCursor(0);
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [isOpen]);
 
   const matches = useMemo(() => {
     if (!query.trim()) return nodes;
@@ -35,21 +24,17 @@ export function TaskSearchDialog({
     return nodes.filter((n) => n.title.toLowerCase().includes(q));
   }, [query, nodes]);
 
-  useEffect(() => {
-    setCursor((c) => Math.min(c, Math.max(matches.length - 1, 0)));
-  }, [matches.length]);
+  const activeCursor = Math.min(cursor, Math.max(matches.length - 1, 0));
 
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLLIElement>(
-      `[data-index="${cursor}"]`,
+      `[data-index="${activeCursor}"]`,
     );
     el?.scrollIntoView({ block: "nearest" });
-  }, [cursor]);
-
-  if (!isOpen) return null;
+  }, [activeCursor]);
 
   const submit = () => {
-    const match = matches[cursor];
+    const match = matches[activeCursor];
     if (match) {
       onSelect(match.id);
       onClose();
@@ -101,10 +86,14 @@ export function TaskSearchDialog({
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
           <Search className="w-4 h-4 text-gray-400" />
           <input
-            ref={inputRef}
+            // biome-ignore lint/a11y/noAutofocus: The dialog opens from an explicit search command.
+            autoFocus
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setCursor(0);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="タスク名を検索..."
             className="flex-1 outline-none text-sm"
@@ -122,7 +111,7 @@ export function TaskSearchDialog({
                 key={task.id}
                 data-index={index}
                 className={`px-4 py-2 text-sm cursor-pointer flex items-center gap-2 ${
-                  index === cursor
+                  index === activeCursor
                     ? "bg-blue-100 text-blue-700"
                     : "text-gray-700 hover:bg-gray-50"
                 } ${task.completed ? "line-through text-gray-400" : ""}`}

@@ -41,8 +41,14 @@ import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { ImportDialog } from "../molecules/graph/import-dialog";
 import { SaveTemplateDialog } from "../molecules/graph/save-template-dialog";
 import { SelectionOverlay } from "../molecules/graph/selection-overlay";
-import { TaskBottomSheet } from "../molecules/graph/task-bottom-sheet";
-import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
+import {
+  TaskBottomSheet,
+  type TaskBottomSheetHandle,
+} from "../molecules/graph/task-bottom-sheet";
+import {
+  TaskDetailPanel,
+  type TaskDetailPanelHandle,
+} from "../molecules/graph/task-detail-panel";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
 import { TaskSearchDialog } from "../molecules/graph/task-search-dialog";
 import { TemplateDialog } from "../molecules/graph/template-dialog";
@@ -83,8 +89,6 @@ interface GraphAreaProps {
   ) => void;
   onConnectIsolated?: () => void;
   parentId?: string | null;
-  titleFocusToken?: number;
-  onRequestTitleFocus?: () => void;
   keyboardEnabled?: boolean;
   onSelectTask?: (taskId: string | null) => void;
   onEscapeToParent?: () => void;
@@ -116,8 +120,6 @@ export function GraphArea({
   onSaveTemplate,
   onConnectIsolated,
   parentId = null,
-  titleFocusToken = 0,
-  onRequestTitleFocus,
   keyboardEnabled = true,
   onSelectTask,
   onEscapeToParent,
@@ -137,6 +139,8 @@ export function GraphArea({
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_DELAY = 300; // ミリ秒
   const containerRef = useRef<HTMLDivElement>(null);
+  const taskBottomSheetRef = useRef<TaskBottomSheetHandle>(null);
+  const taskDetailPanelRef = useRef<TaskDetailPanelHandle>(null);
 
   const panToPosition = useCallback(
     (position: { x: number; y: number }) => {
@@ -640,10 +644,20 @@ export function GraphArea({
 
   const handleEditTitleFromKey = useCallback(
     (taskId: string) => {
+      const focusTitle = () => {
+        taskBottomSheetRef.current?.focusTitle();
+        taskDetailPanelRef.current?.focusTitle();
+      };
+
+      if (selectedTask?.id === taskId) {
+        focusTitle();
+        return;
+      }
+
       onSelectTask?.(taskId);
-      onRequestTitleFocus?.();
+      requestAnimationFrame(() => requestAnimationFrame(focusTitle));
     },
-    [onSelectTask, onRequestTitleFocus],
+    [onSelectTask, selectedTask?.id],
   );
 
   useKeyboardShortcuts({
@@ -837,6 +851,7 @@ export function GraphArea({
         <Controls className="mb-20 sm:mb-0" />
         {selectedTask && !isSelectionMode && !isMobile && (
           <TaskDetailPanel
+            ref={taskDetailPanelRef}
             selectedTask={selectedTask}
             onTitleChange={onTitleChange}
             onDetailClick={onNodeDoubleClick}
@@ -844,13 +859,13 @@ export function GraphArea({
               send({ type: "REQUEST_DELETE", nodeIds: [taskId] })
             }
             onExportClick={onExportTask}
-            titleFocusToken={titleFocusToken}
           />
         )}
       </ReactFlow>
 
       {selectedTask && !isSelectionMode && isMobile && (
         <TaskBottomSheet
+          ref={taskBottomSheetRef}
           selectedTask={selectedTask}
           onTitleChange={onTitleChange}
           onDetailClick={onNodeDoubleClick}
@@ -860,7 +875,6 @@ export function GraphArea({
           }
           onExportClick={onExportTask}
           onClose={() => onSelectTask?.(null)}
-          titleFocusToken={titleFocusToken}
         />
       )}
 
@@ -903,12 +917,13 @@ export function GraphArea({
         onSave={handleSaveTemplate}
       />
 
-      <TaskSearchDialog
-        isOpen={searchOpen}
-        nodes={taskNodes}
-        onClose={() => setSearchOpen(false)}
-        onSelect={(taskId) => handleSelectTaskFromKey(taskId)}
-      />
+      {searchOpen && (
+        <TaskSearchDialog
+          nodes={taskNodes}
+          onClose={() => setSearchOpen(false)}
+          onSelect={(taskId) => handleSelectTaskFromKey(taskId)}
+        />
+      )}
 
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-50">
         <button

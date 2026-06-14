@@ -1,9 +1,13 @@
 import { ChevronRight, Copy, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useImperativeHandle, useRef } from "react";
 import { Panel } from "reactflow";
 import { isEscapeKey } from "../../../lib/keyboard";
 import { useEditSession } from "../../../stores/use-edit-session";
 import type { TaskNode } from "../../../types/task";
+
+export interface TaskDetailPanelHandle {
+  focusTitle: () => void;
+}
 
 interface TaskDetailPanelProps {
   selectedTask: TaskNode;
@@ -11,7 +15,7 @@ interface TaskDetailPanelProps {
   onDetailClick?: (taskId: string) => void;
   onDeleteClick?: (taskId: string) => void;
   onExportClick?: (taskId: string) => void;
-  titleFocusToken?: number;
+  ref?: React.Ref<TaskDetailPanelHandle>;
 }
 
 export function TaskDetailPanel({
@@ -20,19 +24,17 @@ export function TaskDetailPanel({
   onDetailClick,
   onDeleteClick,
   onExportClick,
-  titleFocusToken = 0,
+  ref,
 }: TaskDetailPanelProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const lastTokenRef = useRef(titleFocusToken);
   const { handleFocus, handleBlur } = useEditSession();
 
-  useEffect(() => {
-    if (titleFocusToken !== lastTokenRef.current && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-    lastTokenRef.current = titleFocusToken;
-  }, [titleFocusToken]);
+  useImperativeHandle(ref, () => ({
+    focusTitle: () => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    },
+  }));
 
   const handleDeleteClick = () => {
     onDeleteClick?.(selectedTask.id);

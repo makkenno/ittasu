@@ -13,6 +13,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -35,7 +36,6 @@ interface ProjectListItemProps {
   copied: boolean;
   canDelete: boolean;
   isMobile?: boolean;
-  inputRef: RefObject<HTMLInputElement | null>;
   itemRef: RefObject<HTMLDivElement | null>;
   onSelect: () => void;
   onStartEdit: () => void;
@@ -47,13 +47,11 @@ interface ProjectListItemProps {
 }
 
 function ProjectNameInput({
-  inputRef,
   editingName,
   onChange,
   onSubmit,
   onCancel,
 }: {
-  inputRef: RefObject<HTMLInputElement | null>;
   editingName: string;
   onChange: (name: string) => void;
   onSubmit: () => void;
@@ -62,7 +60,8 @@ function ProjectNameInput({
   const { handleFocus, handleBlur } = useEditSession();
   return (
     <input
-      ref={inputRef}
+      // biome-ignore lint/a11y/noAutofocus: Editing starts from an explicit user action.
+      autoFocus
       className="flex-1 text-sm bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
       value={editingName}
       onChange={(e) => onChange(e.target.value)}
@@ -237,7 +236,6 @@ function ProjectListItem({
   copied,
   canDelete,
   isMobile = false,
-  inputRef,
   itemRef,
   onSelect,
   onStartEdit,
@@ -267,7 +265,6 @@ function ProjectListItem({
       />
       {isEditing ? (
         <ProjectNameInput
-          inputRef={inputRef}
           editingName={editingName}
           onChange={onEditingNameChange}
           onSubmit={onRenameSubmit}
@@ -319,20 +316,25 @@ interface SidebarProps {
   focused?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
-  collapseToggleToken?: number;
   isMobile?: boolean;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  ref?: React.Ref<SidebarHandle>;
+}
+
+export interface SidebarHandle {
+  activate: () => void;
+  toggle: () => void;
 }
 
 export function Sidebar({
   focused = false,
   onFocus,
   onBlur,
-  collapseToggleToken = 0,
   isMobile = false,
   mobileOpen = false,
   onMobileClose,
+  ref,
 }: SidebarProps = {}) {
   const projects = useTaskStore((s) => s.projects);
   const currentProjectId = useTaskStore((s) => s.currentProjectId);
@@ -349,36 +351,20 @@ export function Sidebar({
   const [editingName, setEditingName] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [cursorIndex, setCursorIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
-  useEffect(() => {
-    if (editingId) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [editingId]);
-
-  const prevFocusedRef = useRef(focused);
-  useEffect(() => {
-    const becameFocused = focused && !prevFocusedRef.current;
-    prevFocusedRef.current = focused;
-    if (becameFocused) setCollapsed(false);
-  }, [focused]);
-
-  const lastCollapseTokenRef = useRef(collapseToggleToken);
-  useEffect(() => {
-    if (collapseToggleToken !== lastCollapseTokenRef.current) {
-      setCollapsed((c) => !c);
-    }
-    lastCollapseTokenRef.current = collapseToggleToken;
-  }, [collapseToggleToken]);
-
-  useEffect(() => {
-    if (!focused) return;
-    const idx = projects.findIndex((p) => p.id === currentProjectId);
-    if (idx >= 0) setCursorIndex(idx);
-  }, [focused, projects, currentProjectId]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      activate: () => {
+        setCollapsed(false);
+        const index = projects.findIndex((p) => p.id === currentProjectId);
+        if (index >= 0) setCursorIndex(index);
+      },
+      toggle: () => setCollapsed((current) => !current),
+    }),
+    [projects, currentProjectId],
+  );
 
   useEffect(() => {
     if (!focused) return;
@@ -581,7 +567,6 @@ export function Sidebar({
                 copied={copiedId === project.id}
                 canDelete={projects.length > 1}
                 isMobile
-                inputRef={inputRef}
                 itemRef={{
                   get current() {
                     return itemRefs.current.get(project.id) ?? null;
@@ -716,7 +701,6 @@ export function Sidebar({
                 editingName={editingName}
                 copied={copiedId === project.id}
                 canDelete={projects.length > 1}
-                inputRef={inputRef}
                 itemRef={{
                   get current() {
                     return itemRefs.current.get(project.id) ?? null;

@@ -1,8 +1,12 @@
 import { Check, ChevronRight, Copy, Square, Trash2, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useImperativeHandle, useRef } from "react";
 import { isEscapeKey } from "../../../lib/keyboard";
 import { useEditSession } from "../../../stores/use-edit-session";
 import type { TaskNode } from "../../../types/task";
+
+export interface TaskBottomSheetHandle {
+  focusTitle: () => void;
+}
 
 interface TaskBottomSheetProps {
   selectedTask: TaskNode;
@@ -12,7 +16,7 @@ interface TaskBottomSheetProps {
   onDeleteClick?: (taskId: string) => void;
   onExportClick?: (taskId: string) => void;
   onClose?: () => void;
-  titleFocusToken?: number;
+  ref?: React.Ref<TaskBottomSheetHandle>;
 }
 
 export function TaskBottomSheet({
@@ -23,19 +27,17 @@ export function TaskBottomSheet({
   onDeleteClick,
   onExportClick,
   onClose,
-  titleFocusToken = 0,
+  ref,
 }: TaskBottomSheetProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const lastTokenRef = useRef(titleFocusToken);
   const { handleFocus, handleBlur } = useEditSession();
 
-  useEffect(() => {
-    if (titleFocusToken !== lastTokenRef.current && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-    lastTokenRef.current = titleFocusToken;
-  }, [titleFocusToken]);
+  useImperativeHandle(ref, () => ({
+    focusTitle: () => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    },
+  }));
 
   return (
     <div

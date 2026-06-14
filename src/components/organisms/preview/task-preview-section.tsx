@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { cn } from "../../../lib/utils";
 import type { TaskNode } from "../../../types/task";
@@ -21,28 +21,16 @@ export function TaskPreviewSection({
   const [isEditingMemo, setIsEditingMemo] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [memo, setMemo] = useState(task.memo);
-  const titleInputRef = useRef<HTMLInputElement>(null);
-  const memoTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
+  const startEditingTitle = () => {
     setTitle(task.title);
-  }, [task.title]);
+    setIsEditingTitle(true);
+  };
 
-  useEffect(() => {
+  const startEditingMemo = () => {
     setMemo(task.memo);
-  }, [task.memo]);
-
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-    }
-  }, [isEditingTitle]);
-
-  useEffect(() => {
-    if (isEditingMemo && memoTextareaRef.current) {
-      memoTextareaRef.current.focus();
-    }
-  }, [isEditingMemo]);
+    setIsEditingMemo(true);
+  };
 
   const handleTitleSubmit = () => {
     setIsEditingTitle(false);
@@ -82,7 +70,8 @@ export function TaskPreviewSection({
       <div className="group relative mb-4">
         {isEditingTitle ? (
           <input
-            ref={titleInputRef}
+            // biome-ignore lint/a11y/noAutofocus: Editing starts from an explicit user action.
+            autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleTitleSubmit}
@@ -96,11 +85,11 @@ export function TaskPreviewSection({
           />
         ) : (
           <HeadingTag
-            onClick={() => setIsEditingTitle(true)}
+            onClick={startEditingTitle}
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                setIsEditingTitle(true);
+                startEditingTitle();
               }
             }}
             tabIndex={0}
@@ -108,10 +97,10 @@ export function TaskPreviewSection({
             className={cn(
               "font-bold transition-colors cursor-text hover:bg-gray-50 rounded px-1 -mx-1 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500",
               fontSize,
-              !title && "text-gray-400 italic",
+              !task.title && "text-gray-400 italic",
             )}
           >
-            {title || "無題"}
+            {task.title || "無題"}
           </HeadingTag>
         )}
       </div>
@@ -119,7 +108,7 @@ export function TaskPreviewSection({
       <div className="group relative min-h-[2rem]">
         {isEditingMemo ? (
           <TextareaAutosize
-            ref={memoTextareaRef}
+            autoFocus
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             onBlur={handleMemoSubmit}
@@ -131,19 +120,19 @@ export function TaskPreviewSection({
         ) : (
           // biome-ignore lint/a11y/useSemanticElements: MarkdownPreview contains interactive elements (links), so we cannot use a button.
           <div
-            onClick={() => setIsEditingMemo(true)}
+            onClick={startEditingMemo}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                setIsEditingMemo(true);
+                startEditingMemo();
               }
             }}
             tabIndex={0}
             role="button"
             className="transition-colors cursor-text hover:bg-gray-50 rounded p-2 -m-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {memo ? (
-              <MarkdownPreview value={memo} />
+            {task.memo ? (
+              <MarkdownPreview value={task.memo} />
             ) : (
               <p className="text-gray-400 italic">メモなし</p>
             )}

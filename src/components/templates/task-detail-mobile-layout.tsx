@@ -21,9 +21,6 @@ interface TaskDetailMobileLayoutProps {
   currentNodes: TaskNode[];
   currentEdges: TaskEdge[];
   selectedTask: TaskNode | null;
-  titleFocusToken: number;
-  memoFocusToken: number;
-  headerTitleEditToken: number;
 
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
@@ -58,10 +55,8 @@ interface TaskDetailMobileLayoutProps {
     selectedNodeIds: Set<string>,
   ) => void;
   onConnectIsolated: () => void;
-  onRequestTitleFocus: () => void;
   onSelectTask: (taskId: string | null) => void;
   onGoToParent: () => void;
-  onRequestHeaderTitleEdit: () => void;
   onCopyCurrentMarkdown: () => Promise<void>;
 
   onMemoChange: (newMemo: string) => void;
@@ -74,7 +69,6 @@ interface MobileTopBarProps {
   hasParent: boolean;
   title: string;
   completed: boolean;
-  headerTitleEditToken: number;
   tab: MobileTab;
   onOpenSidebar: () => void;
   onTabChange: (tab: MobileTab) => void;
@@ -89,7 +83,6 @@ function MobileTopBar({
   hasParent,
   title,
   completed,
-  headerTitleEditToken,
   tab,
   onOpenSidebar,
   onTabChange,
@@ -124,7 +117,6 @@ function MobileTopBar({
         onToggleComplete={onToggleComplete}
         onBackClick={onBackClick}
         onPreviewClick={onPreviewClick}
-        titleEditToken={headerTitleEditToken}
         showMenuButton
         onMenuClick={onOpenSidebar}
       />
@@ -189,7 +181,6 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
         hasParent={props.hasParent}
         title={props.title}
         completed={props.completed}
-        headerTitleEditToken={props.headerTitleEditToken}
         tab={mobileTab}
         onOpenSidebar={() => setMobileSidebarOpen(true)}
         onTabChange={setMobileTab}
@@ -222,16 +213,11 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
             onSaveTemplate={props.onSaveTemplate}
             onConnectIsolated={props.onConnectIsolated}
             parentId={props.currentTaskId}
-            titleFocusToken={props.titleFocusToken}
-            onRequestTitleFocus={props.onRequestTitleFocus}
             onSelectTask={props.onSelectTask}
             keyboardEnabled={false}
             onEscapeToParent={props.isRoot ? undefined : props.onGoToParent}
             onFocusMemo={props.isRoot ? undefined : showMemoFromGraph}
             onToggleMemo={props.isRoot ? undefined : toggleMemoTab}
-            onEditCurrentTitle={
-              props.isRoot ? undefined : props.onRequestHeaderTitleEdit
-            }
             onCopyCurrent={
               props.isRoot ? undefined : props.onCopyCurrentMarkdown
             }
@@ -243,7 +229,6 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
             onMemoChange={props.onMemoChange}
             onCopyMemo={props.onCopyMemo}
             onCopyExportPrompt={props.onCopyExportPrompt}
-            focusToken={props.memoFocusToken}
           />
         )}
       </div>

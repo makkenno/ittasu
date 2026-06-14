@@ -1,28 +1,24 @@
-import { useEffect, useRef } from "react";
+import { useImperativeHandle, useRef } from "react";
 import { isEscapeKey } from "../../../lib/keyboard";
 import { useEditSession } from "../../../stores/use-edit-session";
+
+export interface MarkdownEditorHandle {
+  focus: () => void;
+}
 
 interface MarkdownEditorProps {
   value: string;
   onChange?: (value: string) => void;
-  focusToken?: number;
+  ref?: React.Ref<MarkdownEditorHandle>;
 }
 
-export function MarkdownEditor({
-  value,
-  onChange,
-  focusToken = 0,
-}: MarkdownEditorProps) {
+export function MarkdownEditor({ value, onChange, ref }: MarkdownEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lastTokenRef = useRef(focusToken);
   const { handleFocus, handleBlur } = useEditSession();
 
-  useEffect(() => {
-    if (focusToken !== lastTokenRef.current && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-    lastTokenRef.current = focusToken;
-  }, [focusToken]);
+  useImperativeHandle(ref, () => ({
+    focus: () => textareaRef.current?.focus(),
+  }));
 
   return (
     <textarea

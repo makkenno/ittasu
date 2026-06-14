@@ -17,9 +17,9 @@ import { useToastStore } from "../../stores/toast-store";
 import type { TemplateTask } from "../../types/template";
 import { ShortcutHelpDialog } from "../molecules/common/shortcut-help-dialog";
 import { GraphArea } from "../organisms/graph-area";
-import { Header } from "../organisms/header";
-import { MemoArea } from "../organisms/memo-area";
-import { Sidebar } from "../organisms/sidebar";
+import { Header, type HeaderHandle } from "../organisms/header";
+import { MemoArea, type MemoAreaHandle } from "../organisms/memo-area";
+import { Sidebar, type SidebarHandle } from "../organisms/sidebar";
 import { PreviewPage } from "./preview-page";
 import { TaskDetailMobileLayout } from "./task-detail-mobile-layout";
 
@@ -52,21 +52,16 @@ export function TaskDetailPage() {
 
   const isMobile = useIsMobile();
   const [showPreview, setShowPreview] = useState(false);
-  const [titleFocusToken, setTitleFocusToken] = useState(0);
-  const [memoFocusToken, setMemoFocusToken] = useState(0);
-  const [headerTitleEditToken, setHeaderTitleEditToken] = useState(0);
-  const [sidebarToggleToken, setSidebarToggleToken] = useState(0);
   const [focusArea, setFocusArea] = useState<FocusArea>("graph");
   const [showHelp, setShowHelp] = useState(false);
   const memoPanelRef = useRef<ImperativePanelHandle>(null);
+  const headerRef = useRef<HeaderHandle>(null);
+  const memoAreaRef = useRef<MemoAreaHandle>(null);
+  const sidebarRef = useRef<SidebarHandle>(null);
 
-  const requestTitleFocus = useCallback(
-    () => setTitleFocusToken((n) => n + 1),
-    [],
-  );
   const requestMemoFocus = useCallback(() => {
     memoPanelRef.current?.expand();
-    setMemoFocusToken((n) => n + 1);
+    requestAnimationFrame(() => memoAreaRef.current?.focusEditor());
   }, []);
   const toggleMemoVisible = useCallback(() => {
     const panel = memoPanelRef.current;
@@ -75,7 +70,7 @@ export function TaskDetailPage() {
     else panel.collapse();
   }, []);
   const requestHeaderTitleEdit = useCallback(
-    () => setHeaderTitleEditToken((n) => n + 1),
+    () => headerRef.current?.editTitle(),
     [],
   );
 
@@ -91,11 +86,16 @@ export function TaskDetailPage() {
           event.preventDefault();
           const active = document.activeElement;
           if (active instanceof HTMLElement) active.blur();
-          setFocusArea((prev) => (prev === "sidebar" ? "graph" : "sidebar"));
+          if (focusArea === "sidebar") {
+            setFocusArea("graph");
+          } else {
+            sidebarRef.current?.activate();
+            setFocusArea("sidebar");
+          }
         },
         "Control+b": (event) => {
           event.preventDefault();
-          setSidebarToggleToken((n) => n + 1);
+          sidebarRef.current?.toggle();
         },
       },
       {
@@ -121,7 +121,7 @@ export function TaskDetailPage() {
       unsubGlobal();
       unsubHelp();
     };
-  }, [isMobile]);
+  }, [isMobile, focusArea]);
 
   // 現在のタスクを取得
   const currentTask = currentTaskId
@@ -367,9 +367,6 @@ ${memoContent}`;
         currentNodes={currentNodes}
         currentEdges={currentEdges}
         selectedTask={selectedTask}
-        titleFocusToken={titleFocusToken}
-        memoFocusToken={memoFocusToken}
-        headerTitleEditToken={headerTitleEditToken}
         onTitleChange={handleTitleChange}
         onToggleComplete={handleToggleComplete}
         onBackClick={handleBackClick}
@@ -390,10 +387,8 @@ ${memoContent}`;
         onExportSelected={handleExportSelected}
         onSaveTemplate={handleSaveTemplate}
         onConnectIsolated={connectIsolatedTasks}
-        onRequestTitleFocus={requestTitleFocus}
         onSelectTask={selectTask}
         onGoToParent={goToParent}
-        onRequestHeaderTitleEdit={requestHeaderTitleEdit}
         onCopyCurrentMarkdown={handleCopyCurrentMarkdown}
         onMemoChange={handleMemoChange}
         onCopyMemo={handleCopyMemo}
@@ -405,14 +400,15 @@ ${memoContent}`;
   return (
     <div className="flex h-[100dvh]">
       <Sidebar
+        ref={sidebarRef}
         focused={focusArea === "sidebar"}
         onFocus={focusSidebar}
         onBlur={focusGraph}
-        collapseToggleToken={sidebarToggleToken}
       />
       <div className="flex flex-col flex-1 min-w-0">
         {!isRoot && (
           <Header
+            ref={headerRef}
             title={title}
             completed={completed}
             hasParent={hasParent}
@@ -420,7 +416,6 @@ ${memoContent}`;
             onToggleComplete={handleToggleComplete}
             onBackClick={handleBackClick}
             onPreviewClick={handlePreviewClick}
-            titleEditToken={headerTitleEditToken}
           />
         )}
 
@@ -447,8 +442,6 @@ ${memoContent}`;
               onSaveTemplate={handleSaveTemplate}
               onConnectIsolated={connectIsolatedTasks}
               parentId={currentTaskId}
-              titleFocusToken={titleFocusToken}
-              onRequestTitleFocus={requestTitleFocus}
               keyboardEnabled={focusArea === "graph"}
               onSelectTask={selectTask}
             />
@@ -478,8 +471,6 @@ ${memoContent}`;
                   onSaveTemplate={handleSaveTemplate}
                   onConnectIsolated={connectIsolatedTasks}
                   parentId={currentTaskId}
-                  titleFocusToken={titleFocusToken}
-                  onRequestTitleFocus={requestTitleFocus}
                   keyboardEnabled={focusArea === "graph"}
                   onSelectTask={selectTask}
                   onEscapeToParent={goToParent}
@@ -500,11 +491,11 @@ ${memoContent}`;
                 collapsible={true}
               >
                 <MemoArea
+                  ref={memoAreaRef}
                   memo={memo}
                   onMemoChange={handleMemoChange}
                   onCopyMemo={handleCopyMemo}
                   onCopyExportPrompt={handleCopyExportPrompt}
-                  focusToken={memoFocusToken}
                 />
               </Panel>
             </PanelGroup>

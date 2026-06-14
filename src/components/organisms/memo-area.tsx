@@ -1,17 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useImperativeHandle, useRef, useState } from "react";
 import { useIsMobile } from "../../lib/use-is-mobile";
 import { cn } from "../../lib/utils";
 import { CopyExportPromptButton } from "../molecules/memo/copy-export-prompt-button";
 import { CopyMemoButton } from "../molecules/memo/copy-memo-button";
-import { MarkdownEditor } from "../molecules/memo/markdown-editor";
+import {
+  MarkdownEditor,
+  type MarkdownEditorHandle,
+} from "../molecules/memo/markdown-editor";
 import { MarkdownPreview } from "../molecules/memo/markdown-preview";
+
+export interface MemoAreaHandle {
+  focusEditor: () => void;
+}
 
 interface MemoAreaProps {
   memo: string;
   onMemoChange?: (newMemo: string) => void;
   onCopyMemo?: () => void;
   onCopyExportPrompt?: () => void;
-  focusToken?: number;
+  ref?: React.Ref<MemoAreaHandle>;
 }
 
 type TabMode = "edit" | "preview" | "split";
@@ -21,18 +28,18 @@ export function MemoArea({
   onMemoChange,
   onCopyMemo,
   onCopyExportPrompt,
-  focusToken = 0,
+  ref,
 }: MemoAreaProps) {
   const [mode, setMode] = useState<TabMode>("edit");
-  const lastFocusTokenRef = useRef(focusToken);
   const isMobile = useIsMobile();
+  const editorRef = useRef<MarkdownEditorHandle>(null);
 
-  useEffect(() => {
-    if (focusToken !== lastFocusTokenRef.current && mode === "preview") {
+  useImperativeHandle(ref, () => ({
+    focusEditor: () => {
       setMode("edit");
-    }
-    lastFocusTokenRef.current = focusToken;
-  }, [focusToken, mode]);
+      requestAnimationFrame(() => editorRef.current?.focus());
+    },
+  }));
 
   // モバイルでは分割モードを使わないため、編集扱いにする
   const effectiveMode = isMobile && mode === "split" ? "edit" : mode;
@@ -88,9 +95,9 @@ export function MemoArea({
       <div className="flex-1 overflow-hidden">
         {effectiveMode === "edit" && (
           <MarkdownEditor
+            ref={editorRef}
             value={memo}
             onChange={onMemoChange}
-            focusToken={focusToken}
           />
         )}
         {effectiveMode === "preview" && <MarkdownPreview value={memo} />}
@@ -98,9 +105,9 @@ export function MemoArea({
           <div className="flex h-full">
             <div className="flex-1 min-w-0 border-r">
               <MarkdownEditor
+                ref={editorRef}
                 value={memo}
                 onChange={onMemoChange}
-                focusToken={focusToken}
               />
             </div>
             <div className="flex-1 min-w-0 overflow-y-auto">

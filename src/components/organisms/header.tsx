@@ -1,8 +1,16 @@
 import { Menu } from "lucide-react";
+import { useImperativeHandle, useRef } from "react";
 import { BackButton } from "../molecules/header/back-button";
 import { CompleteToggle } from "../molecules/header/complete-toggle";
 import { PreviewButton } from "../molecules/header/preview-button";
-import { TaskTitle } from "../molecules/header/task-title";
+import {
+  TaskTitle,
+  type TaskTitleHandle,
+} from "../molecules/header/task-title";
+
+export interface HeaderHandle {
+  editTitle: () => void;
+}
 
 interface HeaderProps {
   title: string;
@@ -12,9 +20,9 @@ interface HeaderProps {
   onToggleComplete?: () => void;
   onBackClick?: () => void;
   onPreviewClick?: () => void;
-  titleEditToken?: number;
   showMenuButton?: boolean;
   onMenuClick?: () => void;
+  ref?: React.Ref<HeaderHandle>;
 }
 
 export function Header({
@@ -25,10 +33,16 @@ export function Header({
   onToggleComplete,
   onBackClick,
   onPreviewClick,
-  titleEditToken = 0,
   showMenuButton = false,
   onMenuClick,
+  ref,
 }: HeaderProps) {
+  const taskTitleRef = useRef<TaskTitleHandle>(null);
+
+  useImperativeHandle(ref, () => ({
+    editTitle: () => taskTitleRef.current?.edit(),
+  }));
+
   return (
     <header className="flex items-center justify-between gap-2 px-3 py-3 md:px-6 md:py-4 border-b bg-white shadow-sm">
       <div className="flex items-center gap-1 flex-shrink-0">
@@ -47,11 +61,7 @@ export function Header({
       </div>
 
       <div className="flex-1 min-w-0">
-        <TaskTitle
-          title={title}
-          onChange={onTitleChange}
-          editToken={titleEditToken}
-        />
+        <TaskTitle ref={taskTitleRef} title={title} onChange={onTitleChange} />
       </div>
 
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
