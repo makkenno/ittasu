@@ -22,7 +22,6 @@ import "reactflow/dist/style.css";
 import {
   type ExportedData,
   exportSelectedNodes,
-  exportSubgraph,
 } from "../../lib/export-import-utils";
 import {
   findEndNode,
@@ -464,38 +463,22 @@ export function GraphArea({
     setEdgeSourceId(null);
   }, [selectedTask, edgeSourceId, onAddEdge, addToast]);
 
-  const handleCopyNode = useCallback(async () => {
+  const handleCopyNode = useCallback(() => {
     if (isSelectionMode && selectedNodeIds.size > 0) {
-      const data = exportSelectedNodes(taskNodes, taskEdges, selectedNodeIds);
-      try {
-        await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-        addToast(
-          `${selectedNodeIds.size} 件のタスクをコピーしました`,
-          "success",
-        );
-      } catch {
-        addToast("コピーに失敗しました", "error");
-      }
+      onExportSelected?.(selectedNodeIds);
       return;
     }
     if (selectedTask) {
-      const data = exportSubgraph(selectedTask.id, taskNodes, taskEdges);
-      try {
-        await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-        addToast("タスクをコピーしました", "success");
-      } catch {
-        addToast("コピーに失敗しました", "error");
-      }
+      onExportTask?.(selectedTask.id);
       return;
     }
     onCopyCurrent?.();
   }, [
     isSelectionMode,
     selectedNodeIds,
-    taskNodes,
-    taskEdges,
     selectedTask,
-    addToast,
+    onExportSelected,
+    onExportTask,
     onCopyCurrent,
   ]);
 
