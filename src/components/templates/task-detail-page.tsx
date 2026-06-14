@@ -37,7 +37,6 @@ export function TaskDetailPage() {
   const updateTaskPosition = useTaskStore((state) => state.updateTaskPosition);
   const setCurrentTaskId = useTaskStore((state) => state.setCurrentTaskId);
   const goToParent = useTaskStore((state) => state.goToParent);
-  const goToNextTask = useTaskStore((state) => state.goToNextTask);
   const addChildTask = useTaskStore((state) => state.addChildTask);
   const addTemplate = useTaskStore((state) => state.addTemplate);
   const saveTemplate = useTaskStore((state) => state.saveTemplate);
@@ -164,10 +163,6 @@ export function TaskDetailPage() {
 
   const handleBackClick = () => {
     goToParent();
-  };
-
-  const handleNextTaskClick = () => {
-    goToNextTask();
   };
 
   const handleNodeClick = (taskId: string) => {
@@ -378,7 +373,6 @@ ${memoContent}`;
         onTitleChange={handleTitleChange}
         onToggleComplete={handleToggleComplete}
         onBackClick={handleBackClick}
-        onNextTaskClick={handleNextTaskClick}
         onPreviewClick={handlePreviewClick}
         onNodesChange={handleNodesChange}
         onNodeClick={handleNodeClick}
@@ -425,7 +419,6 @@ ${memoContent}`;
             onTitleChange={handleTitleChange}
             onToggleComplete={handleToggleComplete}
             onBackClick={handleBackClick}
-            onNextTaskClick={handleNextTaskClick}
             onPreviewClick={handlePreviewClick}
             titleEditToken={headerTitleEditToken}
           />

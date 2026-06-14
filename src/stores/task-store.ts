@@ -23,7 +23,6 @@ import type { TaskEdge } from "../types/edge";
 import type { Project } from "../types/project";
 import type { TaskNode } from "../types/task";
 import type { TaskTemplate, TemplateTask } from "../types/template";
-import { findNextTask } from "./logic";
 
 interface TaskStore {
   nodes: TaskNode[];
@@ -76,8 +75,6 @@ interface TaskStore {
   setCurrentTaskId: (taskId: string | null) => void;
 
   goToParent: () => void;
-
-  goToNextTask: () => void;
 
   selectTask: (taskId: string | null) => void;
 
@@ -521,19 +518,6 @@ export const useTaskStore = create<TaskStore>()(
           }
 
           set({ currentTaskId: currentTask.parentId, selectedTaskId: null });
-        },
-
-        goToNextTask: () => {
-          const { nodes, edges, currentTaskId, currentProjectId } = get();
-          // At root level, only traverse tasks belonging to the current project
-          const filteredNodes = nodes.filter(
-            (n) => n.parentId !== null || n.projectId === currentProjectId,
-          );
-          const nextTaskId = findNextTask(filteredNodes, edges, currentTaskId);
-
-          if (nextTaskId) {
-            set({ currentTaskId: nextTaskId, selectedTaskId: null });
-          }
         },
 
         selectTask: (taskId: string | null) => {

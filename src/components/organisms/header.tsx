@@ -1,7 +1,6 @@
 import { Menu } from "lucide-react";
 import { BackButton } from "../molecules/header/back-button";
 import { CompleteToggle } from "../molecules/header/complete-toggle";
-import { NextTaskButton } from "../molecules/header/next-task-button";
 import { PreviewButton } from "../molecules/header/preview-button";
 import { TaskTitle } from "../molecules/header/task-title";
 
@@ -12,7 +11,6 @@ interface HeaderProps {
   onTitleChange?: (newTitle: string) => void;
   onToggleComplete?: () => void;
   onBackClick?: () => void;
-  onNextTaskClick?: () => void;
   onPreviewClick?: () => void;
   titleEditToken?: number;
   showMenuButton?: boolean;
@@ -26,7 +24,6 @@ export function Header({
   onTitleChange,
   onToggleComplete,
   onBackClick,
-  onNextTaskClick,
   onPreviewClick,
   titleEditToken = 0,
   showMenuButton = false,
@@ -60,7 +57,6 @@ export function Header({
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
         <PreviewButton onClick={onPreviewClick} />
         <CompleteToggle completed={completed} onToggle={onToggleComplete} />
-        <NextTaskButton onClick={onNextTaskClick} />
       </div>
     </header>
   );

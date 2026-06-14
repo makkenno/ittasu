@@ -28,7 +28,6 @@ interface TaskDetailMobileLayoutProps {
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
   onBackClick: () => void;
-  onNextTaskClick: () => void;
   onPreviewClick: () => void;
 
   onNodesChange: (nodes: TaskNode[]) => void;
@@ -82,7 +81,6 @@ interface MobileTopBarProps {
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
   onBackClick: () => void;
-  onNextTaskClick: () => void;
   onPreviewClick: () => void;
 }
 
@@ -98,7 +96,6 @@ function MobileTopBar({
   onTitleChange,
   onToggleComplete,
   onBackClick,
-  onNextTaskClick,
   onPreviewClick,
 }: MobileTopBarProps) {
   if (isRoot) {
@@ -126,7 +123,6 @@ function MobileTopBar({
         onTitleChange={onTitleChange}
         onToggleComplete={onToggleComplete}
         onBackClick={onBackClick}
-        onNextTaskClick={onNextTaskClick}
         onPreviewClick={onPreviewClick}
         titleEditToken={headerTitleEditToken}
         showMenuButton
@@ -200,7 +196,6 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
         onTitleChange={props.onTitleChange}
         onToggleComplete={props.onToggleComplete}
         onBackClick={props.onBackClick}
-        onNextTaskClick={props.onNextTaskClick}
         onPreviewClick={props.onPreviewClick}
       />
 
