@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import { ToastContainer } from "./components/molecules/common/toast-container";
 import { TaskDetailPage } from "./components/templates/task-detail-page";
+import { ThemeProvider } from "./components/theme-provider";
 
 const root = document.getElementById("root");
 
@@ -12,7 +13,9 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <TaskDetailPage />
-    <ToastContainer />
+    <ThemeProvider>
+      <TaskDetailPage />
+      <ToastContainer />
+    </ThemeProvider>
   </StrictMode>,
 );

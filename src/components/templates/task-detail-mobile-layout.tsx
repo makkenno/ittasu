@@ -4,6 +4,7 @@ import type { ExportedData } from "../../lib/export-import-utils";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode } from "../../types/task";
 import type { TemplateTask } from "../../types/template";
+import { ThemeToggle } from "../molecules/common/theme-toggle";
 import { GraphArea } from "../organisms/graph-area";
 import { Header, type TaskHierarchyItem } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
@@ -110,6 +111,7 @@ function MobileTopBar({
           <Menu className="w-5 h-5" />
         </button>
         <h1 className="font-bold text-base text-gray-800 ml-1">ittasu</h1>
+        <ThemeToggle className="ml-auto" />
       </div>
     );
   }

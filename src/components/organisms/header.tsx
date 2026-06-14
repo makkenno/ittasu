@@ -1,5 +1,6 @@
 import { ChevronRight, Menu } from "lucide-react";
 import { useImperativeHandle, useRef } from "react";
+import { ThemeToggle } from "../molecules/common/theme-toggle";
 import { BackButton } from "../molecules/header/back-button";
 import { CompleteToggle } from "../molecules/header/complete-toggle";
 import { PreviewButton } from "../molecules/header/preview-button";
@@ -121,6 +122,7 @@ export function Header({
       <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
         <PreviewButton onClick={onPreviewClick} />
         <CompleteToggle completed={completed} onToggle={onToggleComplete} />
+        <ThemeToggle />
       </div>
     </header>
   );

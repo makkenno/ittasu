@@ -24,6 +24,7 @@ import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import { useEditSession } from "../../stores/use-edit-session";
 import type { Project } from "../../types/project";
+import { ThemeToggle } from "../molecules/common/theme-toggle";
 
 interface ProjectListItemProps {
   project: Project;
@@ -526,14 +527,17 @@ export function Sidebar({
           {/* Header */}
           <div className="flex items-center px-4 py-3 justify-between border-b border-gray-200">
             <h1 className="font-bold text-base text-gray-800">ittasu</h1>
-            <button
-              type="button"
-              onClick={onMobileClose}
-              className="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 transition-colors flex-shrink-0"
-              title="サイドバーを閉じる"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={onMobileClose}
+                className="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                title="サイドバーを閉じる"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Project list */}
@@ -615,21 +619,24 @@ export function Sidebar({
         {!collapsed && (
           <h1 className="font-bold text-base text-gray-800">ittasu</h1>
         )}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setCollapsed((c) => !c);
-          }}
-          className="text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 transition-colors flex-shrink-0"
-          title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          {!collapsed && <ThemeToggle />}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollapsed((c) => !c);
+            }}
+            className="text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+            title={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Project list */}
@@ -637,6 +644,7 @@ export function Sidebar({
         {collapsed ? (
           /* Collapsed: icon-only list */
           <div className="flex flex-col items-center gap-1 px-1">
+            <ThemeToggle className="h-8 w-8" />
             <button
               type="button"
               onClick={(e) => {

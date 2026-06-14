@@ -1,5 +1,6 @@
 import { ArrowLeft, Check, Columns2, Copy, Eye, Pencil } from "lucide-react";
 import { cn } from "../../../lib/utils";
+import { ThemeToggle } from "../../molecules/common/theme-toggle";
 
 interface PreviewHeaderProps {
   onBack: () => void;
@@ -72,26 +73,29 @@ export function PreviewHeader({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onCopy}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 py-2 rounded transition-colors border",
-          copied
-            ? "border-green-500 text-green-600 bg-green-50 hover:bg-green-100"
-            : "border-blue-500 text-blue-600 hover:bg-blue-50",
-        )}
-        title="マークダウンをコピー"
-      >
-        {copied ? (
-          <Check className="w-4 h-4 animate-in zoom-in duration-200" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
-        <span className="text-sm font-medium hidden sm:inline">
-          {copied ? "コピーしました" : "コピー"}
-        </span>
-      </button>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <button
+          type="button"
+          onClick={onCopy}
+          className={cn(
+            "flex items-center justify-center gap-2 px-3 py-2 rounded transition-colors border",
+            copied
+              ? "border-green-500 text-green-600 bg-green-50 hover:bg-green-100"
+              : "border-blue-500 text-blue-600 hover:bg-blue-50",
+          )}
+          title="マークダウンをコピー"
+        >
+          {copied ? (
+            <Check className="w-4 h-4 animate-in zoom-in duration-200" />
+          ) : (
+            <Copy className="w-4 h-4" />
+          )}
+          <span className="text-sm font-medium hidden sm:inline">
+            {copied ? "コピーしました" : "コピー"}
+          </span>
+        </button>
+      </div>
     </header>
   );
 }
