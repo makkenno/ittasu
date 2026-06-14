@@ -31,6 +31,7 @@ import {
   findNextSelectionAfterDelete,
   findPredecessors,
   findStartNode,
+  type GraphLayoutDirection,
   getLayoutedElements,
 } from "../../lib/graph-utils";
 import { useIsCompactGraph, useIsMobile } from "../../lib/use-is-mobile";
@@ -101,6 +102,51 @@ interface GraphAreaProps {
   onCopyCurrent?: () => void;
   onOpenPreview?: () => void;
 }
+
+interface MeasuredNode {
+  width?: number | null;
+  height?: number | null;
+}
+
+const getGraphLayoutDirection = (
+  isCompactGraph: boolean,
+): GraphLayoutDirection => (isCompactGraph ? "TB" : "LR");
+
+const getSequentialInsertPosition = (
+  task: TaskNodeType,
+  measuredNode: MeasuredNode | undefined,
+  direction: GraphLayoutDirection,
+  placement: "before" | "after",
+) => {
+  const sign = placement === "before" ? -1 : 1;
+  if (direction === "TB") {
+    return {
+      x: task.position.x,
+      y: task.position.y + sign * ((measuredNode?.height ?? 100) + 80),
+    };
+  }
+  return {
+    x: task.position.x + sign * ((measuredNode?.width ?? 250) + 80),
+    y: task.position.y,
+  };
+};
+
+const getSiblingInsertPosition = (
+  task: TaskNodeType,
+  measuredNode: MeasuredNode | undefined,
+  direction: GraphLayoutDirection,
+) => {
+  if (direction === "TB") {
+    return {
+      x: task.position.x + (measuredNode?.width ?? 250) + 60,
+      y: task.position.y,
+    };
+  }
+  return {
+    x: task.position.x,
+    y: task.position.y + (measuredNode?.height ?? 100) + 60,
+  };
+};
 
 interface MobileGraphToolbarProps {
   moreOpen: boolean;
@@ -352,6 +398,7 @@ export function GraphArea({
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const layoutDirection = getGraphLayoutDirection(isCompactGraph);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
@@ -394,6 +441,7 @@ export function GraphArea({
         nodesForLayout,
         edgesForLayout,
         nodeDimensions,
+        layoutDirection,
       );
 
       const temporalApi = useTaskStore.temporal.getState();
@@ -409,7 +457,7 @@ export function GraphArea({
         rfInstance.fitView({ duration: 800 });
       }, 50);
     },
-    [onTaskNodesChange, rfInstance],
+    [layoutDirection, onTaskNodesChange, rfInstance],
   );
 
   const handleFormat = useCallback(() => {
@@ -431,32 +479,43 @@ export function GraphArea({
       });
 
       const existingNodes = rfInstance.getNodes();
-      const newPosition = findFreePosition(centerPosition, existingNodes);
+      const newPosition = findFreePosition(
+        centerPosition,
+        existingNodes,
+        layoutDirection,
+      );
 
       onAddTask?.(newPosition);
       panToPosition(newPosition);
     } else {
       onAddTask?.();
     }
-  }, [rfInstance, onAddTask, panToPosition]);
+  }, [layoutDirection, rfInstance, onAddTask, panToPosition]);
 
   const handleInsertAtStart = useCallback(() => {
     if (!rfInstance) {
       onAddTask?.();
       return;
     }
-    const start = findStartNode(taskNodes, taskEdges, parentId);
+    const start = findStartNode(
+      taskNodes,
+      taskEdges,
+      parentId,
+      layoutDirection,
+    );
     if (!start) {
       handleAddTaskAtViewCenter();
       return;
     }
     const existingNodes = rfInstance.getNodes();
     const startRf = existingNodes.find((n) => n.id === start.id);
-    const base = {
-      x: start.position.x - (startRf?.width ?? 250) - 80,
-      y: start.position.y,
-    };
-    const newPosition = findFreePosition(base, existingNodes);
+    const base = getSequentialInsertPosition(
+      start,
+      startRf,
+      layoutDirection,
+      "before",
+    );
+    const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [], [start.id], []);
     panToPosition(newPosition);
     if (newId) pendingFormatIdsRef.current.add(newId);
@@ -465,6 +524,7 @@ export function GraphArea({
     taskNodes,
     taskEdges,
     parentId,
+    layoutDirection,
     onAddTask,
     panToPosition,
     handleAddTaskAtViewCenter,
@@ -475,18 +535,20 @@ export function GraphArea({
       onAddTask?.();
       return;
     }
-    const end = findEndNode(taskNodes, taskEdges, parentId);
+    const end = findEndNode(taskNodes, taskEdges, parentId, layoutDirection);
     if (!end) {
       handleAddTaskAtViewCenter();
       return;
     }
     const existingNodes = rfInstance.getNodes();
     const endRf = existingNodes.find((n) => n.id === end.id);
-    const base = {
-      x: end.position.x + (endRf?.width ?? 250) + 80,
-      y: end.position.y,
-    };
-    const newPosition = findFreePosition(base, existingNodes);
+    const base = getSequentialInsertPosition(
+      end,
+      endRf,
+      layoutDirection,
+      "after",
+    );
+    const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [end.id], [], []);
     panToPosition(newPosition);
     if (newId) pendingFormatIdsRef.current.add(newId);
@@ -495,6 +557,7 @@ export function GraphArea({
     taskNodes,
     taskEdges,
     parentId,
+    layoutDirection,
     onAddTask,
     panToPosition,
     handleAddTaskAtViewCenter,
@@ -518,11 +581,13 @@ export function GraphArea({
 
     const existingNodes = rfInstance.getNodes();
     const targetRf = existingNodes.find((n) => n.id === target.id);
-    const base = {
-      x: target.position.x - (targetRf?.width ?? 250) - 80,
-      y: target.position.y,
-    };
-    const newPosition = findFreePosition(base, existingNodes);
+    const base = getSequentialInsertPosition(
+      target,
+      targetRf,
+      layoutDirection,
+      "before",
+    );
+    const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, predIds, [target.id], removeEdgeIds);
     panToPosition(newPosition);
     if (newId) pendingFormatIdsRef.current.add(newId);
@@ -531,6 +596,7 @@ export function GraphArea({
     selectedTask,
     taskEdges,
     parentId,
+    layoutDirection,
     onAddTask,
     panToPosition,
     handleInsertAtStart,
@@ -554,11 +620,13 @@ export function GraphArea({
 
     const existingNodes = rfInstance.getNodes();
     const sourceRf = existingNodes.find((n) => n.id === source.id);
-    const base = {
-      x: source.position.x + (sourceRf?.width ?? 250) + 80,
-      y: source.position.y,
-    };
-    const newPosition = findFreePosition(base, existingNodes);
+    const base = getSequentialInsertPosition(
+      source,
+      sourceRf,
+      layoutDirection,
+      "after",
+    );
+    const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [source.id], succIds, removeEdgeIds);
     panToPosition(newPosition);
     if (newId) pendingFormatIdsRef.current.add(newId);
@@ -567,6 +635,7 @@ export function GraphArea({
     selectedTask,
     taskEdges,
     parentId,
+    layoutDirection,
     onAddTask,
     panToPosition,
     handleInsertAtEnd,
@@ -578,7 +647,8 @@ export function GraphArea({
       return;
     }
     const reference =
-      selectedTask ?? findEndNode(taskNodes, taskEdges, parentId);
+      selectedTask ??
+      findEndNode(taskNodes, taskEdges, parentId, layoutDirection);
     if (!reference) {
       handleAddTaskAtViewCenter();
       return;
@@ -586,11 +656,12 @@ export function GraphArea({
     const predecessors = findPredecessors(reference.id, taskEdges, parentId);
     const existingNodes = rfInstance.getNodes();
     const refRf = existingNodes.find((n) => n.id === reference.id);
-    const base = {
-      x: reference.position.x,
-      y: reference.position.y + (refRf?.height ?? 100) + 60,
-    };
-    const newPosition = findFreePosition(base, existingNodes);
+    const base = getSiblingInsertPosition(reference, refRf, layoutDirection);
+    const newPosition = findFreePosition(
+      base,
+      existingNodes,
+      layoutDirection === "TB" ? "LR" : "TB",
+    );
     const newId = onAddTask?.(newPosition, predecessors);
     panToPosition(newPosition);
     if (newId) pendingFormatIdsRef.current.add(newId);
@@ -600,6 +671,7 @@ export function GraphArea({
     taskNodes,
     taskEdges,
     parentId,
+    layoutDirection,
     onAddTask,
     panToPosition,
     handleAddTaskAtViewCenter,
@@ -728,16 +800,16 @@ export function GraphArea({
     }
   }, [onImportTasks, addToast, send]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: parentId is used as a trigger
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scope and layout direction intentionally trigger re-layout
   useEffect(() => {
     if (rfInstance) {
       const timer = setTimeout(() => {
-        rfInstance.fitView({ duration: 800 });
+        handleFormatRef.current();
       }, 50);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [rfInstance, parentId]);
+  }, [rfInstance, parentId, layoutDirection, taskNodes.length]);
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
@@ -752,6 +824,7 @@ export function GraphArea({
           task,
           onToggleComplete,
           isEdgeSource: edgeSourceId === task.id,
+          layoutDirection,
         },
       })),
     [
@@ -761,6 +834,7 @@ export function GraphArea({
       isSelectionMode,
       selectedTask,
       edgeSourceId,
+      layoutDirection,
     ],
   );
 

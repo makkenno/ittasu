@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import type { NodeProps } from "reactflow";
 import { Handle, Position } from "reactflow";
+import type { GraphLayoutDirection } from "../../../lib/graph-utils";
 import { cn } from "../../../lib/utils";
 import type { TaskNode as TaskNodeType } from "../../../types/task";
 
@@ -8,10 +9,12 @@ export interface TaskNodeData {
   task: TaskNodeType;
   onToggleComplete?: (taskId: string) => void;
   isEdgeSource?: boolean;
+  layoutDirection: GraphLayoutDirection;
 }
 
 export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
-  const { task, onToggleComplete, isEdgeSource } = data;
+  const { task, onToggleComplete, isEdgeSource, layoutDirection } = data;
+  const isVertical = layoutDirection === "TB";
 
   return (
     <div
@@ -26,8 +29,11 @@ export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
     >
       <Handle
         type="target"
-        position={Position.Left}
-        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center -ml-1.5 md:ml-0"
+        position={isVertical ? Position.Top : Position.Left}
+        className={cn(
+          "!w-6 !h-6 lg:!w-3 lg:!h-3 !bg-transparent !border-none flex items-center justify-center",
+          isVertical ? "-mt-1.5 lg:mt-0" : "-ml-1.5 lg:ml-0",
+        )}
       >
         <div className="w-3 h-3 bg-gray-400 rounded-full border-2 border-white pointer-events-none" />
       </Handle>
@@ -66,8 +72,11 @@ export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
 
       <Handle
         type="source"
-        position={Position.Right}
-        className="!w-6 !h-6 md:!w-3 md:!h-3 !bg-transparent !border-none flex items-center justify-center -mr-1.5 md:mr-0"
+        position={isVertical ? Position.Bottom : Position.Right}
+        className={cn(
+          "!w-6 !h-6 lg:!w-3 lg:!h-3 !bg-transparent !border-none flex items-center justify-center",
+          isVertical ? "-mb-1.5 lg:mb-0" : "-mr-1.5 lg:mr-0",
+        )}
       >
         <div className="w-3 h-3 bg-gray-400 rounded-full border-2 border-white pointer-events-none" />
       </Handle>

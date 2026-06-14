@@ -2,6 +2,8 @@ import dagre from "dagre";
 import type { TaskEdge } from "../types/edge";
 import type { TaskNode } from "../types/task";
 
+export type GraphLayoutDirection = "LR" | "TB";
+
 export const getDescendantIds = (
   nodes: TaskNode[],
   rootId: string,
@@ -79,6 +81,7 @@ export const findFreePosition = (
     width?: number | null;
     height?: number | null;
   }[],
+  direction: GraphLayoutDirection = "LR",
   nodeWidth = 200,
   nodeHeight = 100,
   spacing = 20,
@@ -110,13 +113,11 @@ export const findFreePosition = (
     });
   };
 
-  // Search to the right
-  // We check with a smaller step to find the first available gap
   const stepSize = 50;
   for (let i = 0; i < 200; i++) {
     const pos = {
-      x: center.x + i * stepSize,
-      y: center.y,
+      x: center.x + (direction === "LR" ? i * stepSize : 0),
+      y: center.y + (direction === "TB" ? i * stepSize : 0),
     };
 
     if (!isOverlapping(pos)) {
@@ -131,6 +132,7 @@ export const findEndNode = (
   nodes: TaskNode[],
   edges: TaskEdge[],
   parentId: string | null,
+  direction: GraphLayoutDirection = "LR",
 ): TaskNode | null => {
   if (nodes.length === 0) return null;
   const scopeEdges = edges.filter((e) => e.parentId === parentId);
@@ -139,6 +141,10 @@ export const findEndNode = (
   const pool = ends.length > 0 ? ends : nodes;
   return (
     [...pool].sort((a, b) => {
+      if (direction === "TB") {
+        if (a.position.y !== b.position.y) return b.position.y - a.position.y;
+        return b.position.x - a.position.x;
+      }
       if (a.position.x !== b.position.x) return b.position.x - a.position.x;
       return b.position.y - a.position.y;
     })[0] ?? null
@@ -149,6 +155,7 @@ export const findStartNode = (
   nodes: TaskNode[],
   edges: TaskEdge[],
   parentId: string | null,
+  direction: GraphLayoutDirection = "LR",
 ): TaskNode | null => {
   if (nodes.length === 0) return null;
   const scopeEdges = edges.filter((e) => e.parentId === parentId);
@@ -157,6 +164,10 @@ export const findStartNode = (
   const pool = starts.length > 0 ? starts : nodes;
   return (
     [...pool].sort((a, b) => {
+      if (direction === "TB") {
+        if (a.position.y !== b.position.y) return a.position.y - b.position.y;
+        return a.position.x - b.position.x;
+      }
       if (a.position.x !== b.position.x) return a.position.x - b.position.x;
       return a.position.y - b.position.y;
     })[0] ?? null
@@ -243,7 +254,7 @@ export const getLayoutedElements = (
   nodes: TaskNode[],
   edges: TaskEdge[],
   nodeDimensions: Map<string, { width: number; height: number }> = new Map(),
-  direction = "LR", // TB (top-bottom) or LR (left-right)
+  direction: GraphLayoutDirection = "LR",
 ) => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
