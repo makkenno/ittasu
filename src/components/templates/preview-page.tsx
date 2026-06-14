@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { tinykeys } from "tinykeys";
 import { generateMarkdown, sortByDependencies } from "../../lib/markdown-utils";
+import { useIsMobile } from "../../lib/use-is-mobile";
 import { useToastStore } from "../../stores/toast-store";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode } from "../../types/task";
@@ -29,6 +30,7 @@ export function PreviewPage({
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"preview" | "edit" | "split">("preview");
   const addToast = useToastStore((s) => s.addToast);
+  const isMobile = useIsMobile();
 
   const handleCopy = useCallback(async () => {
     const markdown = generateMarkdown(nodes, edges, currentTaskId);
@@ -44,6 +46,7 @@ export function PreviewPage({
   }, [nodes, edges, currentTaskId, addToast]);
 
   useEffect(() => {
+    if (isMobile) return;
     const getContainer = () =>
       document.getElementById("preview-scroll-container");
     const scrollBy = (delta: number) => {
@@ -96,7 +99,7 @@ export function PreviewPage({
         handleCopy();
       },
     });
-  }, [onBack, handleCopy]);
+  }, [onBack, handleCopy, isMobile]);
 
   const renderTasks = () => {
     let tasksToRender: TaskNode[] = [];

@@ -163,6 +163,9 @@ interface SidebarProps {
   onFocus?: () => void;
   onBlur?: () => void;
   collapseToggleToken?: number;
+  isMobile?: boolean;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export function Sidebar({
@@ -170,6 +173,9 @@ export function Sidebar({
   onFocus,
   onBlur,
   collapseToggleToken = 0,
+  isMobile = false,
+  mobileOpen = false,
+  onMobileClose,
 }: SidebarProps = {}) {
   const projects = useTaskStore((s) => s.projects);
   const currentProjectId = useTaskStore((s) => s.currentProjectId);
@@ -345,9 +351,104 @@ export function Sidebar({
     handleCopyProject,
   ]);
 
-  const focusedClasses = focused
-    ? "border-blue-500 bg-blue-50/60 shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
-    : "border-gray-200 bg-gray-50";
+  const focusedClasses =
+    !isMobile && focused
+      ? "border-blue-500 bg-blue-50/60 shadow-[inset_4px_0_0_0_rgb(59,130,246)]"
+      : "border-gray-200 bg-gray-50";
+
+  if (isMobile) {
+    return (
+      <>
+        {mobileOpen && (
+          <button
+            type="button"
+            aria-label="サイドバーを閉じる"
+            onClick={onMobileClose}
+            className="fixed inset-0 z-[90] bg-black/40"
+          />
+        )}
+        <div
+          className={`fixed top-0 left-0 z-[100] h-[100dvh] w-64 max-w-[80vw] border-r border-gray-200 bg-gray-50 flex flex-col text-left transition-transform duration-200 ease-out ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* Header */}
+          <div className="flex items-center px-4 py-3 justify-between border-b border-gray-200">
+            <h1 className="font-bold text-base text-gray-800">ittasu</h1>
+            <button
+              type="button"
+              onClick={onMobileClose}
+              className="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+              title="サイドバーを閉じる"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Project list */}
+          <div className="flex-1 overflow-y-auto py-2">
+            <div className="flex items-center justify-between px-3 py-1 mb-1">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                プロジェクト
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddProject();
+                }}
+                className="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
+                title="プロジェクトを追加"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {projects.map((project, index) => (
+              <ProjectListItem
+                key={project.id}
+                project={project}
+                isActive={project.id === currentProjectId}
+                isCursor={index === cursorIndex}
+                showCursor={false}
+                taskCount={getRootTaskCount(project.id)}
+                isEditing={editingId === project.id}
+                editingName={editingName}
+                copied={copiedId === project.id}
+                canDelete={projects.length > 1}
+                inputRef={inputRef}
+                itemRef={{
+                  get current() {
+                    return itemRefs.current.get(project.id) ?? null;
+                  },
+                  set current(value) {
+                    if (value) {
+                      itemRefs.current.set(project.id, value);
+                    } else {
+                      itemRefs.current.delete(project.id);
+                    }
+                  },
+                }}
+                onSelect={() => {
+                  setCurrentProjectId(project.id);
+                  setCursorIndex(index);
+                  onMobileClose?.();
+                }}
+                onStartEdit={() => {
+                  setEditingId(project.id);
+                  setEditingName(project.name);
+                }}
+                onEditingNameChange={setEditingName}
+                onRenameSubmit={handleRenameSubmit}
+                onCancelEdit={() => setEditingId(null)}
+                onCopy={() => handleCopyProject(project.id)}
+                onRequestDelete={() => handleDeleteProject(project.id)}
+              />
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div

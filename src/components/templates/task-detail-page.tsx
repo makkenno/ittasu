@@ -11,6 +11,7 @@ import {
   exportSubgraph,
 } from "../../lib/export-import-utils";
 import { generateMarkdown } from "../../lib/markdown-utils";
+import { useIsMobile } from "../../lib/use-is-mobile";
 import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import type { TemplateTask } from "../../types/template";
@@ -20,6 +21,7 @@ import { Header } from "../organisms/header";
 import { MemoArea } from "../organisms/memo-area";
 import { Sidebar } from "../organisms/sidebar";
 import { PreviewPage } from "./preview-page";
+import { TaskDetailMobileLayout } from "./task-detail-mobile-layout";
 
 type FocusArea = "graph" | "sidebar";
 
@@ -49,6 +51,7 @@ export function TaskDetailPage() {
   const importSubgraph = useTaskStore((state) => state.importSubgraph);
   const addToast = useToastStore((state) => state.addToast);
 
+  const isMobile = useIsMobile();
   const [showPreview, setShowPreview] = useState(false);
   const [titleFocusToken, setTitleFocusToken] = useState(0);
   const [memoFocusToken, setMemoFocusToken] = useState(0);
@@ -81,6 +84,7 @@ export function TaskDetailPage() {
   const focusGraph = useCallback(() => setFocusArea("graph"), []);
 
   useEffect(() => {
+    if (isMobile) return;
     const unsubGlobal = tinykeys(
       window,
       {
@@ -118,7 +122,7 @@ export function TaskDetailPage() {
       unsubGlobal();
       unsubHelp();
     };
-  }, []);
+  }, [isMobile]);
 
   // 現在のタスクを取得
   const currentTask = currentTaskId
@@ -352,6 +356,54 @@ ${memoContent}`;
         onBack={handleBackFromPreview}
         onTitleChange={updateTaskTitle}
         onMemoChange={updateTaskMemo}
+      />
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <TaskDetailMobileLayout
+        isRoot={isRoot}
+        hasParent={hasParent}
+        title={title}
+        completed={completed}
+        memo={memo}
+        currentTaskId={currentTaskId}
+        currentNodes={currentNodes}
+        currentEdges={currentEdges}
+        selectedTask={selectedTask}
+        titleFocusToken={titleFocusToken}
+        memoFocusToken={memoFocusToken}
+        headerTitleEditToken={headerTitleEditToken}
+        onTitleChange={handleTitleChange}
+        onToggleComplete={handleToggleComplete}
+        onBackClick={handleBackClick}
+        onNextTaskClick={handleNextTaskClick}
+        onPreviewClick={handlePreviewClick}
+        onNodesChange={handleNodesChange}
+        onNodeClick={handleNodeClick}
+        onNodeDoubleClick={handleNodeDoubleClick}
+        onToggleCompleteNode={handleToggleCompleteNode}
+        onNodeTitleChange={handleNodeTitleChange}
+        onAddTask={handleAddTask}
+        onAddTemplate={handleAddTemplate}
+        onAddEdge={addEdge}
+        onRemoveEdge={removeEdge}
+        onRemoveTask={removeTask}
+        onPaneClick={handlePaneClick}
+        onImportTasks={importSubgraph}
+        onExportTask={handleExportTask}
+        onExportSelected={handleExportSelected}
+        onSaveTemplate={handleSaveTemplate}
+        onConnectIsolated={connectIsolatedTasks}
+        onRequestTitleFocus={requestTitleFocus}
+        onSelectTask={selectTask}
+        onGoToParent={goToParent}
+        onRequestHeaderTitleEdit={requestHeaderTitleEdit}
+        onCopyCurrentMarkdown={handleCopyCurrentMarkdown}
+        onMemoChange={handleMemoChange}
+        onCopyMemo={handleCopyMemo}
+        onCopyExportPrompt={handleCopyExportPrompt}
       />
     );
   }

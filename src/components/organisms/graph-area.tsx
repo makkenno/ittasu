@@ -32,6 +32,7 @@ import {
   findStartNode,
   getLayoutedElements,
 } from "../../lib/graph-utils";
+import { useIsMobile } from "../../lib/use-is-mobile";
 import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import type { TaskEdge } from "../../types/edge";
@@ -41,6 +42,7 @@ import { DeletableEdge } from "../molecules/graph/deletable-edge";
 import { ImportDialog } from "../molecules/graph/import-dialog";
 import { SaveTemplateDialog } from "../molecules/graph/save-template-dialog";
 import { SelectionOverlay } from "../molecules/graph/selection-overlay";
+import { TaskBottomSheet } from "../molecules/graph/task-bottom-sheet";
 import { TaskDetailPanel } from "../molecules/graph/task-detail-panel";
 import { TaskNode, type TaskNodeData } from "../molecules/graph/task-node";
 import { TaskSearchDialog } from "../molecules/graph/task-search-dialog";
@@ -126,6 +128,7 @@ export function GraphArea({
   onCopyCurrent,
   onOpenPreview,
 }: GraphAreaProps) {
+  const isMobile = useIsMobile();
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [edgeSourceId, setEdgeSourceId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
@@ -845,7 +848,7 @@ export function GraphArea({
       >
         <Background />
         <Controls className="mb-20 sm:mb-0" />
-        {selectedTask && !isSelectionMode && (
+        {selectedTask && !isSelectionMode && !isMobile && (
           <TaskDetailPanel
             selectedTask={selectedTask}
             onTitleChange={onTitleChange}
@@ -858,6 +861,21 @@ export function GraphArea({
           />
         )}
       </ReactFlow>
+
+      {selectedTask && !isSelectionMode && isMobile && (
+        <TaskBottomSheet
+          selectedTask={selectedTask}
+          onTitleChange={onTitleChange}
+          onDetailClick={onNodeDoubleClick}
+          onToggleComplete={onToggleComplete}
+          onDeleteClick={(taskId) =>
+            send({ type: "REQUEST_DELETE", nodeIds: [taskId] })
+          }
+          onExportClick={onExportTask}
+          onClose={() => onSelectTask?.(null)}
+          titleFocusToken={titleFocusToken}
+        />
+      )}
 
       {isSelectionMode && rfInstance && (
         <SelectionOverlay
