@@ -2,6 +2,8 @@ import { useMachine } from "@xstate/react";
 import {
   AlignJustify,
   LayoutTemplate,
+  Maximize2,
+  MoreHorizontal,
   MousePointer2,
   Plus,
   Trash2,
@@ -32,6 +34,7 @@ import {
   getLayoutedElements,
 } from "../../lib/graph-utils";
 import { useIsMobile } from "../../lib/use-is-mobile";
+import { cn } from "../../lib/utils";
 import { useTaskStore } from "../../stores/task-store";
 import { useToastStore } from "../../stores/toast-store";
 import type { TaskEdge } from "../../types/edge";
@@ -99,6 +102,219 @@ interface GraphAreaProps {
   onOpenPreview?: () => void;
 }
 
+interface MobileGraphToolbarProps {
+  moreOpen: boolean;
+  onToggleSelection: () => void;
+  onFitView: () => void;
+  onFormat: () => void;
+  onToggleMore: () => void;
+  onImport: () => void;
+  onTemplate: () => void;
+  onAddTask: () => void;
+}
+
+function MobileGraphToolbar({
+  moreOpen,
+  onToggleSelection,
+  onFitView,
+  onFormat,
+  onToggleMore,
+  onImport,
+  onTemplate,
+  onAddTask,
+}: MobileGraphToolbarProps) {
+  return (
+    <div
+      className="absolute left-3 right-3 z-[60]"
+      style={{
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+      }}
+    >
+      {moreOpen && (
+        <div className="absolute bottom-[calc(100%+0.5rem)] right-0 w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
+          <button
+            type="button"
+            onClick={onImport}
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-700 transition-colors active:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <Upload className="h-5 w-5" />
+            インポート
+          </button>
+          <button
+            type="button"
+            onClick={onTemplate}
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-700 transition-colors active:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <LayoutTemplate className="h-5 w-5" />
+            テンプレート
+          </button>
+        </div>
+      )}
+      <div
+        className="grid grid-cols-5 gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl"
+        role="toolbar"
+        aria-label="グラフ操作"
+      >
+        <MobileToolbarButton
+          icon={<MousePointer2 className="h-5 w-5" />}
+          label="選択"
+          onClick={onToggleSelection}
+        />
+        <MobileToolbarButton
+          icon={<Maximize2 className="h-5 w-5" />}
+          label="全体"
+          onClick={onFitView}
+        />
+        <MobileToolbarButton
+          icon={<AlignJustify className="h-5 w-5" />}
+          label="整列"
+          onClick={onFormat}
+        />
+        <MobileToolbarButton
+          icon={<MoreHorizontal className="h-5 w-5" />}
+          label="その他"
+          onClick={onToggleMore}
+          expanded={moreOpen}
+        />
+        <MobileToolbarButton
+          icon={<Plus className="h-5 w-5" />}
+          label="追加"
+          onClick={onAddTask}
+          primary
+        />
+      </div>
+    </div>
+  );
+}
+
+interface MobileToolbarButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+  primary?: boolean;
+  expanded?: boolean;
+}
+
+function MobileToolbarButton({
+  icon,
+  label,
+  onClick,
+  disabled = false,
+  destructive = false,
+  primary = false,
+  expanded,
+}: MobileToolbarButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-expanded={expanded}
+      className={cn(
+        "flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+        primary
+          ? "bg-blue-600 text-white active:bg-blue-700 focus-visible:ring-offset-1"
+          : destructive
+            ? "text-red-600 active:bg-red-50 disabled:text-gray-300"
+            : "text-gray-700 active:bg-gray-100 disabled:text-gray-300",
+      )}
+    >
+      {icon}
+      <span
+        className={cn("text-[11px] font-medium", primary && "font-semibold")}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+interface MobileSelectionToolbarProps {
+  selectedCount: number;
+  onExit: () => void;
+  onExport: () => void;
+  onSaveTemplate: () => void;
+  onDelete: () => void;
+}
+
+function MobileSelectionToolbar({
+  selectedCount,
+  onExit,
+  onExport,
+  onSaveTemplate,
+  onDelete,
+}: MobileSelectionToolbarProps) {
+  const hasSelection = selectedCount > 0;
+
+  return (
+    <>
+      <div className="pointer-events-none absolute left-1/2 top-3 z-[60] -translate-x-1/2">
+        <output className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700 shadow-sm">
+          選択モード・{selectedCount}件
+        </output>
+      </div>
+      <div
+        className="absolute left-3 right-3 z-[60] grid grid-cols-4 gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl"
+        style={{
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)",
+        }}
+        role="toolbar"
+        aria-label="選択したタスクの操作"
+      >
+        <MobileToolbarButton
+          icon={<MousePointer2 className="h-5 w-5" />}
+          label="終了"
+          onClick={onExit}
+        />
+        <MobileToolbarButton
+          icon={<Upload className="h-5 w-5 rotate-180" />}
+          label="コピー"
+          onClick={onExport}
+          disabled={!hasSelection}
+        />
+        <MobileToolbarButton
+          icon={<LayoutTemplate className="h-5 w-5" />}
+          label="保存"
+          onClick={onSaveTemplate}
+          disabled={!hasSelection}
+        />
+        <MobileToolbarButton
+          icon={<Trash2 className="h-5 w-5" />}
+          label="削除"
+          onClick={onDelete}
+          disabled={!hasSelection}
+          destructive
+        />
+      </div>
+    </>
+  );
+}
+
+function EmptyGraphState({ onAddTask }: { onAddTask: () => void }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
+      <div className="pointer-events-auto max-w-xs rounded-xl border border-gray-200 bg-white/95 p-5 text-center shadow-sm backdrop-blur">
+        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+          <Plus className="h-5 w-5" />
+        </div>
+        <p className="font-semibold text-gray-900">最初のタスクを追加</p>
+        <p className="mt-1 text-sm leading-6 text-gray-500">
+          タスクを追加すると、関係を線でつないで整理できます。
+        </p>
+        <button
+          type="button"
+          onClick={onAddTask}
+          className="mt-4 min-h-11 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+        >
+          タスクを追加
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function GraphArea({
   nodes: taskNodes,
   edges: taskEdges,
@@ -134,6 +350,7 @@ export function GraphArea({
   const [edgeSourceId, setEdgeSourceId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
@@ -742,6 +959,12 @@ export function GraphArea({
         return;
       }
 
+      if (isMobile) {
+        send({ type: "PANE_CLICK" });
+        setMobileActionsOpen(false);
+        return;
+      }
+
       const currentTime = Date.now();
       const timeSinceLastClick = currentTime - lastClickTimeRef.current;
 
@@ -760,7 +983,7 @@ export function GraphArea({
         send({ type: "PANE_CLICK" });
       }
     },
-    [rfInstance, onAddTask, isSelectionMode, send],
+    [rfInstance, onAddTask, isMobile, isSelectionMode, send],
   );
 
   const handleTemplateSelect = useCallback(
@@ -824,7 +1047,10 @@ export function GraphArea({
   );
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-gray-50 relative">
+    <div
+      ref={containerRef}
+      className="relative h-full w-full overscroll-contain bg-gray-50 touch-manipulation"
+    >
       <ReactFlow
         nodes={reactFlowNodes}
         edges={reactFlowEdges}
@@ -848,7 +1074,7 @@ export function GraphArea({
         fitView
       >
         <Background />
-        <Controls className="mb-20 sm:mb-0" />
+        <Controls className="hidden sm:flex" />
         {selectedTask && !isSelectionMode && !isMobile && (
           <TaskDetailPanel
             ref={taskDetailPanelRef}
@@ -862,6 +1088,10 @@ export function GraphArea({
           />
         )}
       </ReactFlow>
+
+      {taskNodes.length === 0 && !isSelectionMode && (
+        <EmptyGraphState onAddTask={handleAddTaskAtViewCenter} />
+      )}
 
       {selectedTask && !isSelectionMode && isMobile && (
         <TaskBottomSheet
@@ -925,7 +1155,7 @@ export function GraphArea({
         />
       )}
 
-      <div className="absolute top-4 left-4 flex flex-col gap-2 z-50">
+      <div className="absolute left-4 top-4 z-50 hidden flex-col gap-2 sm:flex">
         <button
           type="button"
           onClick={() => send({ type: "TOGGLE_MODE" })}
@@ -970,7 +1200,7 @@ export function GraphArea({
       </div>
 
       {isSelectionMode && selectedNodeIds.size > 0 && (
-        <div className="absolute bottom-12 right-4 flex flex-col gap-2 z-50 items-end">
+        <div className="absolute bottom-12 right-4 z-50 hidden flex-col items-end gap-2 sm:flex">
           <button
             type="button"
             onClick={handleExportSelected}
@@ -1012,7 +1242,7 @@ export function GraphArea({
           <button
             type="button"
             onClick={handleAddTaskAtViewCenter}
-            className="absolute bottom-12 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-blue-500 text-white rounded-full sm:rounded-lg shadow-lg hover:bg-blue-600 transition-colors"
+            className="absolute bottom-12 right-4 hidden items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white shadow-lg transition-colors hover:bg-blue-600 sm:flex"
             title="新しいタスクを追加"
           >
             <Plus className="w-6 h-6 sm:w-5 sm:h-5" />
@@ -1022,13 +1252,42 @@ export function GraphArea({
           <button
             type="button"
             onClick={() => send({ type: "OPEN_TEMPLATE" })}
-            className="absolute bottom-28 sm:bottom-24 right-4 flex items-center gap-2 p-3 sm:px-4 sm:py-2 bg-white border border-gray-300 text-gray-700 rounded-full sm:rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
+            className="absolute bottom-24 right-4 hidden items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 shadow-lg transition-colors hover:bg-gray-50 sm:flex"
             title="テンプレート"
           >
             <LayoutTemplate className="w-6 h-6 sm:w-5 sm:h-5" />
             <span className="font-medium hidden sm:inline">テンプレート</span>
           </button>
         </>
+      )}
+
+      {isMobile && isSelectionMode && (
+        <MobileSelectionToolbar
+          selectedCount={selectedNodeIds.size}
+          onExit={() => send({ type: "TOGGLE_MODE" })}
+          onExport={handleExportSelected}
+          onSaveTemplate={() => send({ type: "OPEN_SAVE_TEMPLATE" })}
+          onDelete={handleDeleteSelected}
+        />
+      )}
+
+      {isMobile && !isSelectionMode && !selectedTask && (
+        <MobileGraphToolbar
+          moreOpen={mobileActionsOpen}
+          onToggleSelection={() => send({ type: "TOGGLE_MODE" })}
+          onFitView={() => rfInstance?.fitView({ duration: 400 })}
+          onFormat={handleFormat}
+          onToggleMore={() => setMobileActionsOpen((open) => !open)}
+          onImport={() => {
+            setMobileActionsOpen(false);
+            send({ type: "OPEN_IMPORT" });
+          }}
+          onTemplate={() => {
+            setMobileActionsOpen(false);
+            send({ type: "OPEN_TEMPLATE" });
+          }}
+          onAddTask={handleAddTaskAtViewCenter}
+        />
       )}
     </div>
   );

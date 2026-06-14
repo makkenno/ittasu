@@ -41,7 +41,7 @@ export function TaskBottomSheet({
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 rounded-t-2xl shadow-2xl"
+      className="absolute bottom-0 left-0 right-0 z-[70] rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex items-center justify-between px-4 pt-2 pb-1">
@@ -54,7 +54,7 @@ export function TaskBottomSheet({
         <button
           type="button"
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 transition-colors"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-500 transition-colors active:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           aria-label="閉じる"
         >
           <X className="w-4 h-4" />
@@ -62,7 +62,11 @@ export function TaskBottomSheet({
       </div>
 
       <div className="px-4 pb-4 flex flex-col gap-3">
+        <label htmlFor="mobile-task-title" className="sr-only">
+          タスクタイトル
+        </label>
         <input
+          id="mobile-task-title"
           type="text"
           ref={titleInputRef}
           value={selectedTask.title}
@@ -77,7 +81,7 @@ export function TaskBottomSheet({
             }
           }}
           placeholder="タイトル"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="min-h-11 w-full rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         <div className="grid grid-cols-2 gap-2">

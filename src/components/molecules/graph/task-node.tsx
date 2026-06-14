@@ -16,7 +16,7 @@ export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
   return (
     <div
       className={cn(
-        "px-4 py-3 rounded-lg border-2 min-w-[180px] shadow-md transition-colors",
+        "group px-4 py-3 rounded-lg border-2 min-w-[180px] shadow-md transition-colors",
         task.completed
           ? "bg-green-50 border-green-400"
           : "bg-white border-gray-300 hover:border-blue-400",
@@ -43,15 +43,24 @@ export function TaskNode({ data, selected }: NodeProps<TaskNodeData>) {
             e.stopPropagation();
             onToggleComplete?.(task.id);
           }}
+          aria-label={task.completed ? "未完了に戻す" : "完了にする"}
+          aria-pressed={task.completed}
           className={cn(
-            "p-1 rounded transition-colors",
-            task.completed
-              ? "bg-green-500 text-white"
-              : "bg-gray-100 hover:bg-gray-200",
+            "-m-2 flex h-11 w-11 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+            task.completed ? "text-white" : "text-gray-700",
           )}
           title="完了/未完了を切り替え"
         >
-          <Check className="w-4 h-4" />
+          <span
+            className={cn(
+              "flex h-6 w-6 items-center justify-center rounded",
+              task.completed
+                ? "bg-green-500"
+                : "bg-gray-100 group-hover:bg-gray-200",
+            )}
+          >
+            <Check className="h-4 w-4" />
+          </span>
         </button>
       </div>
 
