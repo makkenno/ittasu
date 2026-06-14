@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Copy,
   Folder,
+  MoreVertical,
   Pencil,
   Plus,
   Trash2,
@@ -85,42 +86,22 @@ function ProjectNameInput({
   );
 }
 
-function ProjectItemActions({
-  isMobile,
+function DesktopActions({
   copied,
   canDelete,
-  onStartEdit,
   onCopy,
   onRequestDelete,
 }: {
-  isMobile: boolean;
   copied: boolean;
   canDelete: boolean;
-  onStartEdit: () => void;
   onCopy: () => void;
   onRequestDelete: () => void;
 }) {
-  const visibility = isMobile
-    ? "opacity-100"
-    : "opacity-0 group-hover:opacity-100";
-  const iconSize = isMobile ? "w-4 h-4" : "w-3.5 h-3.5";
-  const btnBase = isMobile
-    ? "w-8 h-8 flex items-center justify-center rounded flex-shrink-0 transition-colors"
-    : "flex-shrink-0 transition-all";
-
+  const visibility = "opacity-0 group-hover:opacity-100";
+  const iconSize = "w-3.5 h-3.5";
+  const btnBase = "flex-shrink-0 transition-all";
   return (
     <>
-      {isMobile && (
-        <button
-          type="button"
-          onClick={onStartEdit}
-          className={`${btnBase} text-gray-400 hover:text-blue-500 ${visibility}`}
-          title="名前を編集"
-          aria-label="名前を編集"
-        >
-          <Pencil className={iconSize} />
-        </button>
-      )}
       <button
         type="button"
         onClick={onCopy}
@@ -150,6 +131,98 @@ function ProjectItemActions({
         </button>
       )}
     </>
+  );
+}
+
+function MobileActionMenu({
+  copied,
+  canDelete,
+  onStartEdit,
+  onCopy,
+  onRequestDelete,
+}: {
+  copied: boolean;
+  canDelete: boolean;
+  onStartEdit: () => void;
+  onCopy: () => void;
+  onRequestDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
+  const wrap = (fn: () => void) => () => {
+    setOpen(false);
+    fn();
+  };
+
+  return (
+    <div ref={containerRef} className="relative flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+          copied ? "text-green-600" : "text-gray-400 hover:text-gray-600"
+        }`}
+        title="メニュー"
+        aria-label="メニュー"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {copied ? (
+          <Check className="w-4 h-4" />
+        ) : (
+          <MoreVertical className="w-4 h-4" />
+        )}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-9 z-10 w-40 bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-left"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={wrap(onStartEdit)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            <Pencil className="w-4 h-4 text-gray-500" />
+            名前を変更
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={wrap(onCopy)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            <Copy className="w-4 h-4 text-gray-500" />
+            コピー
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={wrap(onRequestDelete)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              削除
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -220,14 +293,22 @@ function ProjectListItem({
               {taskCount}
             </span>
           )}
-          <ProjectItemActions
-            isMobile={isMobile}
-            copied={copied}
-            canDelete={canDelete}
-            onStartEdit={onStartEdit}
-            onCopy={onCopy}
-            onRequestDelete={onRequestDelete}
-          />
+          {isMobile ? (
+            <MobileActionMenu
+              copied={copied}
+              canDelete={canDelete}
+              onStartEdit={onStartEdit}
+              onCopy={onCopy}
+              onRequestDelete={onRequestDelete}
+            />
+          ) : (
+            <DesktopActions
+              copied={copied}
+              canDelete={canDelete}
+              onCopy={onCopy}
+              onRequestDelete={onRequestDelete}
+            />
+          )}
         </>
       )}
     </div>
