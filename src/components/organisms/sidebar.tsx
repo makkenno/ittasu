@@ -416,7 +416,10 @@ export function Sidebar({
     (projectId: string) => {
       if (projects.length <= 1) return;
       deleteProject(projectId);
-      addToast("プロジェクトを削除しました（u で元に戻す）", "success");
+      addToast("プロジェクトを削除しました", "success", {
+        label: "元に戻す",
+        onClick: () => useTaskStore.temporal.getState().undo(),
+      });
     },
     [projects.length, deleteProject, addToast],
   );

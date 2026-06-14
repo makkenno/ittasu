@@ -429,9 +429,13 @@ export function GraphArea({
           const count = nodesToDelete.size;
           addToast(
             count > 1
-              ? `${count} 件のタスクを削除しました（u で元に戻す、p で貼り付け）`
-              : "タスクを削除しました（u で元に戻す、p で貼り付け）",
+              ? `${count} 件のタスクを削除しました`
+              : "タスクを削除しました",
             "success",
+            {
+              label: "元に戻す",
+              onClick: () => useTaskStore.temporal.getState().undo(),
+            },
           );
         },
       },
