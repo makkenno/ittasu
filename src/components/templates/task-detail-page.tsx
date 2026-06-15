@@ -29,6 +29,9 @@ import { TaskDetailMobileLayout } from "./task-detail-mobile-layout";
 
 type FocusArea = "graph" | "sidebar";
 
+const getProjectName = (project: { name: string } | undefined) =>
+  project?.name || "プロジェクト";
+
 export function TaskDetailPage() {
   const currentTaskId = useTaskStore((state) => state.currentTaskId);
   const currentProjectId = useTaskStore((state) => state.currentProjectId);
@@ -156,6 +159,7 @@ export function TaskDetailPage() {
   const currentProject = projects.find(
     (project) => project.id === currentProjectId,
   );
+  const projectName = getProjectName(currentProject);
   const ancestorTasks = [];
   const visitedTaskIds = new Set<string>();
   let ancestorId = currentTask?.parentId ?? null;
@@ -171,7 +175,7 @@ export function TaskDetailPage() {
   const hierarchy: TaskHierarchyItem[] = [
     {
       id: null,
-      label: currentProject?.name ?? "プロジェクト",
+      label: projectName,
     },
     ...ancestorTasks.map((task) => ({
       id: task.id,
@@ -408,6 +412,7 @@ ${memoContent}`;
         title={title}
         completed={completed}
         memo={memo}
+        projectName={projectName}
         currentTaskId={currentTaskId}
         currentNodes={currentNodes}
         currentEdges={currentEdges}

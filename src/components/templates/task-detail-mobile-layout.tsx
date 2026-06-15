@@ -18,6 +18,7 @@ interface TaskDetailMobileLayoutProps {
   title: string;
   completed: boolean;
   memo: string;
+  projectName: string;
   currentTaskId: string | null;
   currentNodes: TaskNode[];
   currentEdges: TaskEdge[];
@@ -73,6 +74,7 @@ interface TaskDetailMobileLayoutProps {
 interface MobileTopBarProps {
   isRoot: boolean;
   hasParent: boolean;
+  projectName: string;
   title: string;
   completed: boolean;
   tab: MobileTab;
@@ -89,6 +91,7 @@ interface MobileTopBarProps {
 function MobileTopBar({
   isRoot,
   hasParent,
+  projectName,
   title,
   completed,
   tab,
@@ -103,19 +106,29 @@ function MobileTopBar({
 }: MobileTopBarProps) {
   if (isRoot) {
     return (
-      <div className="flex items-center gap-1 px-3 py-3 border-b bg-white shadow-sm flex-shrink-0">
+      <header className="flex min-h-16 flex-shrink-0 items-center gap-2 border-b bg-white px-3 py-2 shadow-sm">
         <button
           type="button"
           onClick={onOpenSidebar}
-          className="w-9 h-9 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           title="メニューを開く"
           aria-label="メニューを開く"
         >
           <Menu className="w-5 h-5" />
         </button>
-        <h1 className="font-bold text-base text-gray-800 ml-1">ittasu</h1>
-        <ThemeToggle className="ml-auto" />
-      </div>
+        <div className="min-w-0 flex-1">
+          <span className="block text-[11px] font-medium leading-4 text-gray-500">
+            プロジェクト
+          </span>
+          <h1
+            className="truncate text-base font-bold leading-5 text-gray-900"
+            title={projectName}
+          >
+            {projectName}
+          </h1>
+        </div>
+        <ThemeToggle className="shrink-0" />
+      </header>
     );
   }
   return (
@@ -233,6 +246,7 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
       <MobileTopBar
         isRoot={props.isRoot}
         hasParent={props.hasParent}
+        projectName={props.projectName}
         title={props.title}
         completed={props.completed}
         tab={mobileTab}
