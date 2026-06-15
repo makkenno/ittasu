@@ -1,6 +1,8 @@
-import { Menu } from "lucide-react";
+import { Menu, Pencil } from "lucide-react";
 import { useState } from "react";
 import type { ExportedData } from "../../lib/export-import-utils";
+import { isEscapeKey } from "../../lib/keyboard";
+import { useEditSession } from "../../stores/use-edit-session";
 import type { TaskEdge } from "../../types/edge";
 import type { TaskNode } from "../../types/task";
 import type { TemplateTask } from "../../types/template";
@@ -25,6 +27,7 @@ interface TaskDetailMobileLayoutProps {
   selectedTask: TaskNode | null;
   hierarchy: TaskHierarchyItem[];
 
+  onProjectNameChange: (newName: string) => void;
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
   onBackClick: () => void;
@@ -81,6 +84,7 @@ interface MobileTopBarProps {
   hierarchy: TaskHierarchyItem[];
   onOpenSidebar: () => void;
   onTabChange: (tab: MobileTab) => void;
+  onProjectNameChange: (newName: string) => void;
   onTitleChange: (newTitle: string) => void;
   onToggleComplete: () => void;
   onBackClick: () => void;
@@ -98,6 +102,7 @@ function MobileTopBar({
   hierarchy,
   onOpenSidebar,
   onTabChange,
+  onProjectNameChange,
   onTitleChange,
   onToggleComplete,
   onBackClick,
@@ -116,17 +121,10 @@ function MobileTopBar({
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="min-w-0 flex-1">
-          <span className="block text-[11px] font-medium leading-4 text-gray-500">
-            プロジェクト
-          </span>
-          <h1
-            className="truncate text-base font-bold leading-5 text-gray-900"
-            title={projectName}
-          >
-            {projectName}
-          </h1>
-        </div>
+        <MobileProjectName
+          projectName={projectName}
+          onChange={onProjectNameChange}
+        />
         <ThemeToggle className="shrink-0" />
       </header>
     );
@@ -171,6 +169,97 @@ function MobileTopBar({
         />
       </div>
     </>
+  );
+}
+
+function MobileProjectName({
+  projectName,
+  onChange,
+}: {
+  projectName: string;
+  onChange: (newName: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftName, setDraftName] = useState(projectName);
+  const { handleFocus, handleBlur: endSession } = useEditSession();
+
+  const finishEditing = () => {
+    const trimmedName = draftName.trim();
+    if (trimmedName && trimmedName !== projectName) {
+      onChange(trimmedName);
+    } else {
+      setDraftName(projectName);
+    }
+    setIsEditing(false);
+    endSession();
+  };
+
+  const cancelEditing = () => {
+    setDraftName(projectName);
+    setIsEditing(false);
+    endSession();
+  };
+
+  if (isEditing) {
+    return (
+      <div className="min-w-0 flex-1">
+        <label
+          htmlFor="mobile-project-name"
+          className="block text-[11px] font-medium leading-4 text-gray-500"
+        >
+          プロジェクト
+        </label>
+        <input
+          // biome-ignore lint/a11y/noAutofocus: Editing starts from an explicit user action.
+          autoFocus
+          id="mobile-project-name"
+          type="text"
+          value={draftName}
+          onChange={(event) => setDraftName(event.target.value)}
+          onFocus={(event) => {
+            handleFocus();
+            event.currentTarget.select();
+          }}
+          onBlur={finishEditing}
+          onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
+            if (event.key === "Enter") {
+              event.preventDefault();
+              finishEditing();
+            } else if (isEscapeKey(event)) {
+              cancelEditing();
+            }
+          }}
+          className="h-8 w-full rounded-md border border-blue-400 bg-white px-2 text-base font-bold leading-6 text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraftName(projectName);
+        setIsEditing(true);
+      }}
+      className="group min-w-0 flex-1 rounded-md py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      aria-label={`プロジェクト名「${projectName}」を編集`}
+      title="プロジェクト名を編集"
+    >
+      <span className="block text-[11px] font-medium leading-4 text-gray-500">
+        プロジェクト
+      </span>
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="truncate text-base font-bold leading-5 text-gray-900">
+          {projectName}
+        </span>
+        <Pencil
+          className="h-3.5 w-3.5 shrink-0 text-gray-400 transition-colors group-hover:text-gray-600"
+          aria-hidden="true"
+        />
+      </span>
+    </button>
   );
 }
 
@@ -253,6 +342,7 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
         hierarchy={props.hierarchy}
         onOpenSidebar={() => setMobileSidebarOpen(true)}
         onTabChange={setMobileTab}
+        onProjectNameChange={props.onProjectNameChange}
         onTitleChange={props.onTitleChange}
         onToggleComplete={props.onToggleComplete}
         onBackClick={props.onBackClick}

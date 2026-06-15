@@ -32,6 +32,14 @@ type FocusArea = "graph" | "sidebar";
 const getProjectName = (project: { name: string } | undefined) =>
   project?.name || "プロジェクト";
 
+const renameSelectedProject = (
+  projectId: string | null,
+  newName: string,
+  renameProject: (projectId: string, name: string) => void,
+) => {
+  if (projectId) renameProject(projectId, newName);
+};
+
 export function TaskDetailPage() {
   const currentTaskId = useTaskStore((state) => state.currentTaskId);
   const currentProjectId = useTaskStore((state) => state.currentProjectId);
@@ -39,6 +47,7 @@ export function TaskDetailPage() {
   const nodes = useTaskStore((state) => state.nodes);
   const edges = useTaskStore((state) => state.edges);
   const selectedTaskId = useTaskStore((state) => state.selectedTaskId);
+  const renameProject = useTaskStore((state) => state.renameProject);
   const updateTaskTitle = useTaskStore((state) => state.updateTaskTitle);
   const updateTaskMemo = useTaskStore((state) => state.updateTaskMemo);
   const toggleTaskComplete = useTaskStore((state) => state.toggleTaskComplete);
@@ -418,6 +427,9 @@ ${memoContent}`;
         currentEdges={currentEdges}
         selectedTask={selectedTask}
         hierarchy={hierarchy}
+        onProjectNameChange={(newName) =>
+          renameSelectedProject(currentProjectId, newName, renameProject)
+        }
         onTitleChange={handleTitleChange}
         onToggleComplete={handleToggleComplete}
         onBackClick={handleBackClick}
