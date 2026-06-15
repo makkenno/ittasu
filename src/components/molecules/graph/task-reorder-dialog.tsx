@@ -2,7 +2,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -10,7 +9,6 @@ import {
 import {
   arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -25,9 +23,10 @@ import type { TaskNode } from "../../../types/task";
 interface SortableTaskRowProps {
   task: TaskNode | undefined;
   index: number;
+  onMove: (taskId: string, offset: -1 | 1) => void;
 }
 
-function SortableTaskRow({ task, index }: SortableTaskRowProps) {
+function SortableTaskRow({ task, index, onMove }: SortableTaskRowProps) {
   const taskId = task?.id ?? "";
   const {
     attributes,
@@ -67,7 +66,16 @@ function SortableTaskRow({ task, index }: SortableTaskRowProps) {
         type="button"
         {...attributes}
         {...listeners}
-        aria-label={`${title}をドラッグして並び替え`}
+        aria-label={`${title}を移動。上下キー、またはドラッグで並び替え`}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            onMove(taskId, -1);
+          } else if (event.key === "ArrowDown") {
+            event.preventDefault();
+            onMove(taskId, 1);
+          }
+        }}
         className="flex h-11 w-11 shrink-0 touch-none cursor-grab items-center justify-center rounded-lg text-gray-500 active:cursor-grabbing active:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
         <GripVertical className="h-5 w-5" />
@@ -104,9 +112,6 @@ export function TaskReorderDialog({
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
     }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
   );
 
   useEffect(() => {
@@ -134,6 +139,15 @@ export function TaskReorderDialog({
   const getPositionLabel = (taskId: string | number) => {
     const index = draftIds.indexOf(String(taskId));
     return index >= 0 ? `${index + 1}番目` : "";
+  };
+  const moveTask = (taskId: string, offset: -1 | 1) => {
+    setDraftIds((current) => {
+      const oldIndex = current.indexOf(taskId);
+      const newIndex = oldIndex + offset;
+      return oldIndex >= 0 && newIndex >= 0 && newIndex < current.length
+        ? arrayMove(current, oldIndex, newIndex)
+        : current;
+    });
   };
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
@@ -200,10 +214,6 @@ export function TaskReorderDialog({
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
               accessibility={{
-                screenReaderInstructions: {
-                  draggable:
-                    "Spaceキーで持ち上げ、上下の矢印キーで移動し、もう一度Spaceキーで確定します。",
-                },
                 announcements: {
                   onDragStart: ({ active }) =>
                     `${getTaskLabel(active.id)}を持ち上げました。`,
@@ -230,6 +240,7 @@ export function TaskReorderDialog({
                       key={taskId}
                       task={taskById.get(taskId)}
                       index={index}
+                      onMove={moveTask}
                     />
                   ))}
                 </ol>
