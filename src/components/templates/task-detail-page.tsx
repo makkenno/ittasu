@@ -49,6 +49,7 @@ export function TaskDetailPage() {
   const connectIsolatedTasks = useTaskStore(
     (state) => state.connectIsolatedTasks,
   );
+  const reorderLinearTasks = useTaskStore((state) => state.reorderLinearTasks);
   const removeEdge = useTaskStore((state) => state.removeEdge);
   const removeTask = useTaskStore((state) => state.removeTask);
   const selectTask = useTaskStore((state) => state.selectTask);
@@ -433,6 +434,7 @@ ${memoContent}`;
         onExportSelected={handleExportSelected}
         onSaveTemplate={handleSaveTemplate}
         onConnectIsolated={connectIsolatedTasks}
+        onReorderTasks={reorderLinearTasks}
         onSelectTask={selectTask}
         focusTaskId={focusTaskId}
         onFocusTaskHandled={handleFocusTaskHandled}
@@ -491,6 +493,7 @@ ${memoContent}`;
               onExportSelected={handleExportSelected}
               onSaveTemplate={handleSaveTemplate}
               onConnectIsolated={connectIsolatedTasks}
+              onReorderTasks={reorderLinearTasks}
               parentId={currentTaskId}
               keyboardEnabled={focusArea === "graph"}
               onSelectTask={selectTask}
@@ -522,6 +525,7 @@ ${memoContent}`;
                   onExportSelected={handleExportSelected}
                   onSaveTemplate={handleSaveTemplate}
                   onConnectIsolated={connectIsolatedTasks}
+                  onReorderTasks={reorderLinearTasks}
                   parentId={currentTaskId}
                   keyboardEnabled={focusArea === "graph"}
                   onSelectTask={selectTask}

@@ -12,6 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@taga3s/highlightjs-terraform": "^1.0.7",
     "@tailwindcss/vite": "^4.1.17",
     "@types/dagre": "^0.7.53",

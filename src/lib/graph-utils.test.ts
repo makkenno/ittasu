@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { TaskEdge } from "../types/edge";
 import type { TaskNode } from "../types/task";
-import { findFreePosition, getLayoutedElements } from "./graph-utils";
+import {
+  findFreePosition,
+  getLayoutedElements,
+  getLinearTaskOrder,
+} from "./graph-utils";
 
 const createTask = (id: string): TaskNode => ({
   id,
@@ -69,5 +73,53 @@ describe("findFreePosition", () => {
 
     expect(position.x).toBe(0);
     expect(position.y).toBeGreaterThan(100);
+  });
+});
+
+describe("getLinearTaskOrder", () => {
+  it("returns tasks in edge order", () => {
+    const order = getLinearTaskOrder(
+      [createTask("c"), createTask("a"), createTask("b")],
+      edges,
+      null,
+    );
+
+    expect(order?.map((task) => task.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("rejects branches", () => {
+    const order = getLinearTaskOrder(
+      [createTask("a"), createTask("b"), createTask("c")],
+      [
+        { id: "a-b", source: "a", target: "b", parentId: null },
+        { id: "a-c", source: "a", target: "c", parentId: null },
+      ],
+      null,
+    );
+
+    expect(order).toBeNull();
+  });
+
+  it("rejects cycles", () => {
+    const order = getLinearTaskOrder(
+      [createTask("a"), createTask("b")],
+      [
+        { id: "a-b", source: "a", target: "b", parentId: null },
+        { id: "b-a", source: "b", target: "a", parentId: null },
+      ],
+      null,
+    );
+
+    expect(order).toBeNull();
+  });
+
+  it("rejects disconnected tasks", () => {
+    const order = getLinearTaskOrder(
+      [createTask("a"), createTask("b"), createTask("c")],
+      [{ id: "a-b", source: "a", target: "b", parentId: null }],
+      null,
+    );
+
+    expect(order).toBeNull();
   });
 });

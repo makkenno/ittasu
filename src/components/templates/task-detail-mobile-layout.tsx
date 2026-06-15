@@ -58,6 +58,7 @@ interface TaskDetailMobileLayoutProps {
     selectedNodeIds: Set<string>,
   ) => void;
   onConnectIsolated: () => void;
+  onReorderTasks: (taskIds: string[]) => void;
   onSelectTask: (taskId: string | null) => void;
   focusTaskId: string | null;
   onFocusTaskHandled: (taskId: string) => void;
@@ -274,6 +275,7 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
             onExportSelected={props.onExportSelected}
             onSaveTemplate={props.onSaveTemplate}
             onConnectIsolated={props.onConnectIsolated}
+            onReorderTasks={props.onReorderTasks}
             parentId={props.currentTaskId}
             onSelectTask={props.onSelectTask}
             focusTaskId={props.focusTaskId}

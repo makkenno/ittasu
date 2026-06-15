@@ -9,6 +9,7 @@ import {
 import {
   analyzeConnectionsInScope,
   getDescendantIds,
+  getLinearTaskOrder,
 } from "../lib/graph-utils";
 import { indexedDBStorage } from "../lib/indexeddb-storage";
 import {
@@ -67,6 +68,8 @@ interface TaskStore {
   addEdge: (source: string, target: string) => void;
 
   connectIsolatedTasks: () => void;
+
+  reorderLinearTasks: (taskIds: string[]) => void;
 
   removeEdge: (edgeId: string) => void;
 
@@ -478,6 +481,62 @@ export const useTaskStore = create<TaskStore>()(
           set((state) => ({
             edges: [...state.edges, ...newEdges],
           }));
+        },
+
+        reorderLinearTasks: (taskIds: string[]) => {
+          const { nodes, edges, currentTaskId, currentProjectId } = get();
+          const currentNodes = nodes.filter(
+            (node) =>
+              node.parentId === currentTaskId &&
+              (currentTaskId !== null || node.projectId === currentProjectId),
+          );
+          const currentOrder = getLinearTaskOrder(
+            currentNodes,
+            edges,
+            currentTaskId,
+          );
+          if (!currentOrder || currentOrder.length !== taskIds.length) return;
+
+          const requestedIds = new Set(taskIds);
+          if (
+            requestedIds.size !== currentOrder.length ||
+            currentOrder.some((task) => !requestedIds.has(task.id))
+          ) {
+            return;
+          }
+
+          const positionByTaskId = new Map(
+            taskIds.map((taskId, index) => [
+              taskId,
+              currentOrder[index]?.position,
+            ]),
+          );
+          const now = Date.now();
+          const scopeIds = new Set(currentOrder.map((task) => task.id));
+          const remainingEdges = edges.filter(
+            (edge) =>
+              edge.parentId !== currentTaskId ||
+              !scopeIds.has(edge.source) ||
+              !scopeIds.has(edge.target),
+          );
+          const reorderedEdges: TaskEdge[] = taskIds
+            .slice(0, -1)
+            .map((source, index) => ({
+              id: `edge-${now}-reorder-${index}`,
+              source,
+              target: taskIds[index + 1] as string,
+              parentId: currentTaskId,
+            }));
+
+          set({
+            nodes: nodes.map((node) => {
+              const position = positionByTaskId.get(node.id);
+              return position
+                ? { ...node, position, updatedAt: new Date(now) }
+                : node;
+            }),
+            edges: [...remainingEdges, ...reorderedEdges],
+          });
         },
 
         removeEdge: (edgeId: string) => {

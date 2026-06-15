@@ -62,6 +62,68 @@ export const analyzeConnectionsInScope = (
   return { isolated, tails };
 };
 
+const walkLinearOrder = (
+  startId: string,
+  nodeById: Map<string, TaskNode>,
+  outgoingById: Map<string, string>,
+): TaskNode[] | null => {
+  const ordered: TaskNode[] = [];
+  const visited = new Set<string>();
+  let currentId: string | undefined = startId;
+
+  while (currentId) {
+    if (visited.has(currentId)) return null;
+    const currentNode = nodeById.get(currentId);
+    if (!currentNode) return null;
+    visited.add(currentId);
+    ordered.push(currentNode);
+    currentId = outgoingById.get(currentId);
+  }
+
+  return ordered;
+};
+
+export const getLinearTaskOrder = (
+  currentNodes: TaskNode[],
+  edges: TaskEdge[],
+  parentId: string | null,
+): TaskNode[] | null => {
+  if (currentNodes.length === 0) return [];
+
+  const nodeById = new Map(currentNodes.map((node) => [node.id, node]));
+  const scopeEdges = edges.filter(
+    (edge) =>
+      edge.parentId === parentId &&
+      nodeById.has(edge.source) &&
+      nodeById.has(edge.target),
+  );
+
+  if (currentNodes.length === 1) {
+    return scopeEdges.length === 0 ? currentNodes : null;
+  }
+  if (scopeEdges.length !== currentNodes.length - 1) return null;
+
+  const incomingCount = new Map<string, number>();
+  const outgoingById = new Map<string, string>();
+
+  for (const edge of scopeEdges) {
+    const incoming = (incomingCount.get(edge.target) ?? 0) + 1;
+    if (incoming > 1 || outgoingById.has(edge.source)) return null;
+    incomingCount.set(edge.target, incoming);
+    outgoingById.set(edge.source, edge.target);
+  }
+
+  const starts = currentNodes.filter((node) => !incomingCount.has(node.id));
+  if (starts.length !== 1) return null;
+
+  const ordered = walkLinearOrder(
+    starts[0]?.id as string,
+    nodeById,
+    outgoingById,
+  );
+  return ordered?.length === currentNodes.length ? ordered : null;
+};
+
 interface Position {
   x: number;
   y: number;
