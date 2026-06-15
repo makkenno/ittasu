@@ -59,6 +59,8 @@ interface TaskDetailMobileLayoutProps {
   ) => void;
   onConnectIsolated: () => void;
   onSelectTask: (taskId: string | null) => void;
+  focusTaskId: string | null;
+  onFocusTaskHandled: (taskId: string) => void;
   onGoToParent: () => void;
   onCopyCurrentMarkdown: () => Promise<void>;
 
@@ -274,6 +276,8 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
             onConnectIsolated={props.onConnectIsolated}
             parentId={props.currentTaskId}
             onSelectTask={props.onSelectTask}
+            focusTaskId={props.focusTaskId}
+            onFocusTaskHandled={props.onFocusTaskHandled}
             keyboardEnabled={false}
             onEscapeToParent={props.isRoot ? undefined : props.onGoToParent}
             onFocusMemo={props.isRoot ? undefined : showMemoFromGraph}

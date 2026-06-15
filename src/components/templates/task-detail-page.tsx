@@ -59,6 +59,7 @@ export function TaskDetailPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [focusArea, setFocusArea] = useState<FocusArea>("graph");
   const [showHelp, setShowHelp] = useState(false);
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
   const memoPanelRef = useRef<ImperativePanelHandle>(null);
   const headerRef = useRef<HeaderHandle>(null);
   const memoAreaRef = useRef<MemoAreaHandle>(null);
@@ -216,7 +217,20 @@ export function TaskDetailPage() {
     connectFromIds?: string[],
     connectToIds?: string[],
     removeEdgeIds?: string[],
-  ) => addChildTask(position, connectFromIds, connectToIds, removeEdgeIds);
+  ) => {
+    const taskId = addChildTask(
+      position,
+      connectFromIds,
+      connectToIds,
+      removeEdgeIds,
+    );
+    setFocusTaskId(taskId);
+    return taskId;
+  };
+
+  const handleFocusTaskHandled = useCallback((taskId: string) => {
+    setFocusTaskId((current) => (current === taskId ? null : current));
+  }, []);
 
   const handleAddTemplate = (template: {
     tasks: (TemplateTask & { position: { x: number; y: number } })[];
@@ -420,6 +434,8 @@ ${memoContent}`;
         onSaveTemplate={handleSaveTemplate}
         onConnectIsolated={connectIsolatedTasks}
         onSelectTask={selectTask}
+        focusTaskId={focusTaskId}
+        onFocusTaskHandled={handleFocusTaskHandled}
         onGoToParent={goToParent}
         onCopyCurrentMarkdown={handleCopyCurrentMarkdown}
         onMemoChange={handleMemoChange}
@@ -478,6 +494,8 @@ ${memoContent}`;
               parentId={currentTaskId}
               keyboardEnabled={focusArea === "graph"}
               onSelectTask={selectTask}
+              focusTaskId={focusTaskId}
+              onFocusTaskHandled={handleFocusTaskHandled}
             />
           </div>
         ) : (
@@ -507,6 +525,8 @@ ${memoContent}`;
                   parentId={currentTaskId}
                   keyboardEnabled={focusArea === "graph"}
                   onSelectTask={selectTask}
+                  focusTaskId={focusTaskId}
+                  onFocusTaskHandled={handleFocusTaskHandled}
                   onEscapeToParent={goToParent}
                   onFocusMemo={requestMemoFocus}
                   onToggleMemo={toggleMemoVisible}

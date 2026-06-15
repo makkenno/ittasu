@@ -19,6 +19,7 @@ import ReactFlow, {
   type NodeTypes,
   type ReactFlowInstance,
   SelectionMode,
+  useStoreApi,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
@@ -101,6 +102,8 @@ interface GraphAreaProps {
   onEditCurrentTitle?: () => void;
   onCopyCurrent?: () => void;
   onOpenPreview?: () => void;
+  focusTaskId?: string | null;
+  onFocusTaskHandled?: (taskId: string) => void;
 }
 
 interface MeasuredNode {
@@ -108,9 +111,177 @@ interface MeasuredNode {
   height?: number | null;
 }
 
+function getFocusedViewport(
+  container: HTMLDivElement,
+  node: HTMLElement,
+  viewport: { x: number; y: number; zoom: number },
+) {
+  const containerRect = container.getBoundingClientRect();
+  const nodeRect = node.getBoundingClientRect();
+  const zoom = 1.1;
+  const centerX =
+    (nodeRect.left + nodeRect.width / 2 - containerRect.left - viewport.x) /
+    viewport.zoom;
+  const centerY =
+    (nodeRect.top + nodeRect.height / 2 - containerRect.top - viewport.y) /
+    viewport.zoom;
+
+  return {
+    x: containerRect.width / 2 - centerX * zoom,
+    y: containerRect.height / 2 - centerY * zoom,
+    zoom,
+  };
+}
+
+function animateViewport(
+  viewportElement: HTMLElement,
+  target: { x: number; y: number; zoom: number },
+  duration: number,
+) {
+  const startTransform = getComputedStyle(viewportElement).transform;
+  for (const animation of viewportElement.getAnimations()) animation.cancel();
+  if (duration === 0) return undefined;
+
+  const targetTransform = `translate(${target.x}px, ${target.y}px) scale(${target.zoom})`;
+  return viewportElement.animate(
+    [{ transform: startTransform }, { transform: targetTransform }],
+    {
+      duration,
+      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+    },
+  );
+}
+
+function FocusTaskViewport({
+  taskId,
+  onHandled,
+  onPrepare,
+  containerRef,
+}: {
+  taskId: string | null | undefined;
+  onHandled?: (taskId: string) => void;
+  onPrepare: () => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const store = useStoreApi();
+  const prepareRef = useRef(onPrepare);
+  prepareRef.current = onPrepare;
+
+  useEffect(() => {
+    if (!taskId) return;
+
+    let attempts = 0;
+    let retryTimer: number;
+    let focusTimer: number;
+    let handledTimer: number;
+    let viewportAnimation: Animation | undefined;
+    const focusTask = () => {
+      const container = containerRef.current;
+      const node = container?.querySelector<HTMLElement>(
+        `.react-flow__node[data-id="${CSS.escape(taskId)}"]`,
+      );
+      const viewportElement = container?.querySelector<HTMLElement>(
+        ".react-flow__viewport",
+      );
+      if (!container || !node || !viewportElement) return;
+
+      const [x, y, zoom] = store.getState().transform;
+      const viewport = getFocusedViewport(container, node, { x, y, zoom });
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const duration = reduceMotion ? 0 : 350;
+      store.setState({
+        transform: [viewport.x, viewport.y, viewport.zoom],
+      });
+      viewportAnimation = animateViewport(viewportElement, viewport, duration);
+      handledTimer = window.setTimeout(
+        () => onHandled?.(taskId),
+        duration + 50,
+      );
+    };
+    const prepareFocus = () => {
+      const node = containerRef.current?.querySelector<HTMLElement>(
+        `.react-flow__node[data-id="${CSS.escape(taskId)}"]`,
+      );
+      const rect = node?.getBoundingClientRect();
+      if ((!rect?.width || !rect.height) && attempts < 100) {
+        attempts += 1;
+        retryTimer = window.setTimeout(prepareFocus, 50);
+        return;
+      }
+      if (!node) return;
+
+      prepareRef.current();
+      focusTimer = window.setTimeout(focusTask, 50);
+    };
+    prepareFocus();
+
+    return () => {
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(focusTimer);
+      window.clearTimeout(handledTimer);
+      viewportAnimation?.cancel();
+    };
+  }, [containerRef, onHandled, store, taskId]);
+
+  return null;
+}
+
+function useGraphLayoutLifecycle({
+  rfInstance,
+  scopeKey,
+  taskCount,
+  skipNextTaskCountLayoutRef,
+  formatGraph,
+  formatAndFitGraph,
+}: {
+  rfInstance: ReactFlowInstance | null;
+  scopeKey: string;
+  taskCount: number;
+  skipNextTaskCountLayoutRef: React.RefObject<boolean>;
+  formatGraph: () => void;
+  formatAndFitGraph: () => void;
+}) {
+  const layoutStateRef = useRef<{
+    scopeKey: string;
+    taskCount: number;
+  } | null>(null);
+  const formatGraphRef = useRef(formatGraph);
+  const formatAndFitGraphRef = useRef(formatAndFitGraph);
+  formatGraphRef.current = formatGraph;
+  formatAndFitGraphRef.current = formatAndFitGraph;
+
+  useEffect(() => {
+    if (!rfInstance) return undefined;
+
+    const previous = layoutStateRef.current;
+    layoutStateRef.current = { scopeKey, taskCount };
+
+    if (!previous || previous.scopeKey !== scopeKey) {
+      const timer = window.setTimeout(() => formatAndFitGraphRef.current(), 50);
+      return () => window.clearTimeout(timer);
+    }
+
+    if (previous.taskCount === taskCount) return undefined;
+    if (skipNextTaskCountLayoutRef.current) {
+      skipNextTaskCountLayoutRef.current = false;
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => formatGraphRef.current(), 50);
+    return () => window.clearTimeout(timer);
+  }, [rfInstance, scopeKey, taskCount, skipNextTaskCountLayoutRef]);
+}
+
 const getGraphLayoutDirection = (
   isCompactGraph: boolean,
 ): GraphLayoutDirection => (isCompactGraph ? "TB" : "LR");
+
+const getGraphScopeKey = (
+  parentId: string | null,
+  layoutDirection: GraphLayoutDirection,
+) => `${parentId ?? "root"}:${layoutDirection}`;
 
 const getSequentialInsertPosition = (
   task: TaskNodeType,
@@ -390,6 +561,8 @@ export function GraphArea({
   onEditCurrentTitle,
   onCopyCurrent,
   onOpenPreview,
+  focusTaskId,
+  onFocusTaskHandled,
 }: GraphAreaProps) {
   const isMobile = useIsMobile();
   const isCompactGraph = useIsCompactGraph();
@@ -406,18 +579,6 @@ export function GraphArea({
   const containerRef = useRef<HTMLDivElement>(null);
   const taskBottomSheetRef = useRef<TaskBottomSheetHandle>(null);
   const taskDetailPanelRef = useRef<TaskDetailPanelHandle>(null);
-
-  const panToPosition = useCallback(
-    (position: { x: number; y: number }) => {
-      if (!rfInstance) return;
-      const zoom = rfInstance.getZoom();
-      rfInstance.setCenter(position.x, position.y, {
-        zoom,
-        duration: 600,
-      });
-    },
-    [rfInstance],
-  );
 
   const formatNodes = useCallback(
     (nodesForLayout: TaskNodeType[], edgesForLayout: TaskEdge[]) => {
@@ -451,22 +612,26 @@ export function GraphArea({
       } finally {
         temporalApi.resume();
       }
-
-      // Fit view after layout adjustment
-      setTimeout(() => {
-        rfInstance.fitView({ duration: 800 });
-      }, 50);
     },
     [layoutDirection, onTaskNodesChange, rfInstance],
   );
 
-  const handleFormat = useCallback(() => {
+  const formatGraph = useCallback(() => {
     formatNodes(taskNodes, taskEdges);
   }, [formatNodes, taskNodes, taskEdges]);
+  const formatAndFitGraph = useCallback(() => {
+    formatGraph();
+    window.setTimeout(() => rfInstance?.fitView({ duration: 400 }), 50);
+  }, [formatGraph, rfInstance]);
 
-  const pendingFormatIdsRef = useRef<Set<string>>(new Set());
-  const handleFormatRef = useRef(handleFormat);
-  handleFormatRef.current = handleFormat;
+  const skipNextTaskCountLayoutRef = useRef(false);
+  const prepareTaskFocus = useCallback(() => {
+    formatGraph();
+  }, [formatGraph]);
+
+  const trackAddedTask = useCallback(() => {
+    skipNextTaskCountLayoutRef.current = true;
+  }, []);
 
   const handleAddTaskAtViewCenter = useCallback(() => {
     if (rfInstance && containerRef.current) {
@@ -485,12 +650,12 @@ export function GraphArea({
         layoutDirection,
       );
 
-      onAddTask?.(newPosition);
-      panToPosition(newPosition);
+      const newId = onAddTask?.(newPosition);
+      if (newId) trackAddedTask();
     } else {
       onAddTask?.();
     }
-  }, [layoutDirection, rfInstance, onAddTask, panToPosition]);
+  }, [layoutDirection, rfInstance, onAddTask, trackAddedTask]);
 
   const handleInsertAtStart = useCallback(() => {
     if (!rfInstance) {
@@ -517,8 +682,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [], [start.id], []);
-    panToPosition(newPosition);
-    if (newId) pendingFormatIdsRef.current.add(newId);
+    if (newId) trackAddedTask();
   }, [
     rfInstance,
     taskNodes,
@@ -526,7 +690,7 @@ export function GraphArea({
     parentId,
     layoutDirection,
     onAddTask,
-    panToPosition,
+    trackAddedTask,
     handleAddTaskAtViewCenter,
   ]);
 
@@ -550,8 +714,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [end.id], [], []);
-    panToPosition(newPosition);
-    if (newId) pendingFormatIdsRef.current.add(newId);
+    if (newId) trackAddedTask();
   }, [
     rfInstance,
     taskNodes,
@@ -559,7 +722,7 @@ export function GraphArea({
     parentId,
     layoutDirection,
     onAddTask,
-    panToPosition,
+    trackAddedTask,
     handleAddTaskAtViewCenter,
   ]);
 
@@ -589,8 +752,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, predIds, [target.id], removeEdgeIds);
-    panToPosition(newPosition);
-    if (newId) pendingFormatIdsRef.current.add(newId);
+    if (newId) trackAddedTask();
   }, [
     rfInstance,
     selectedTask,
@@ -598,7 +760,7 @@ export function GraphArea({
     parentId,
     layoutDirection,
     onAddTask,
-    panToPosition,
+    trackAddedTask,
     handleInsertAtStart,
   ]);
 
@@ -628,8 +790,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [source.id], succIds, removeEdgeIds);
-    panToPosition(newPosition);
-    if (newId) pendingFormatIdsRef.current.add(newId);
+    if (newId) trackAddedTask();
   }, [
     rfInstance,
     selectedTask,
@@ -637,7 +798,7 @@ export function GraphArea({
     parentId,
     layoutDirection,
     onAddTask,
-    panToPosition,
+    trackAddedTask,
     handleInsertAtEnd,
   ]);
 
@@ -663,8 +824,7 @@ export function GraphArea({
       layoutDirection === "TB" ? "LR" : "TB",
     );
     const newId = onAddTask?.(newPosition, predecessors);
-    panToPosition(newPosition);
-    if (newId) pendingFormatIdsRef.current.add(newId);
+    if (newId) trackAddedTask();
   }, [
     rfInstance,
     selectedTask,
@@ -673,7 +833,7 @@ export function GraphArea({
     parentId,
     layoutDirection,
     onAddTask,
-    panToPosition,
+    trackAddedTask,
     handleAddTaskAtViewCenter,
   ]);
 
@@ -800,16 +960,15 @@ export function GraphArea({
     }
   }, [onImportTasks, addToast, send]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scope and layout direction intentionally trigger re-layout
-  useEffect(() => {
-    if (rfInstance) {
-      const timer = setTimeout(() => {
-        handleFormatRef.current();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [rfInstance, parentId, layoutDirection, taskNodes.length]);
+  const scopeKey = getGraphScopeKey(parentId, layoutDirection);
+  useGraphLayoutLifecycle({
+    rfInstance,
+    scopeKey,
+    taskCount: taskNodes.length,
+    skipNextTaskCountLayoutRef,
+    formatGraph,
+    formatAndFitGraph,
+  });
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(
     () =>
@@ -851,23 +1010,6 @@ export function GraphArea({
     onRemoveEdge,
     onAddEdge,
   });
-
-  const handleNodesChangeWithFormat = useCallback(
-    (changes: Parameters<typeof handleNodesChange>[0]) => {
-      handleNodesChange(changes);
-      const pending = pendingFormatIdsRef.current;
-      if (pending.size === 0) return;
-      let trigger = false;
-      for (const change of changes) {
-        if (change.type === "dimensions" && pending.has(change.id)) {
-          pending.delete(change.id);
-          trigger = true;
-        }
-      }
-      if (trigger) handleFormatRef.current();
-    },
-    [handleNodesChange],
-  );
 
   const handleSelectionChange = useCallback(
     ({ nodes }: { nodes: Node[] }) => {
@@ -918,20 +1060,41 @@ export function GraphArea({
     (taskId: string | null) => {
       if (taskId && rfInstance) {
         const node = rfInstance.getNode(taskId);
-        if (node) {
+        const viewportElement =
+          containerRef.current?.querySelector<HTMLElement>(
+            ".react-flow__viewport",
+          );
+        if (node && viewportElement && containerRef.current) {
           const zoom = rfInstance.getZoom();
           const width = node.width ?? 0;
           const height = node.height ?? 0;
-          rfInstance.setCenter(
-            node.position.x + width / 2,
-            node.position.y + height / 2,
-            { zoom, duration: 300 },
-          );
+          const target = {
+            x:
+              containerRef.current.clientWidth / 2 -
+              (node.position.x + width / 2) * zoom,
+            y:
+              containerRef.current.clientHeight / 2 -
+              (node.position.y + height / 2) * zoom,
+            zoom,
+          };
+          void rfInstance.setViewport(target);
+          const reduceMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+          ).matches;
+          animateViewport(viewportElement, target, reduceMotion ? 0 : 300);
         }
       }
+      if (focusTaskId) onFocusTaskHandled?.(focusTaskId);
       onSelectTask?.(taskId);
     },
-    [onSelectTask, rfInstance],
+    [focusTaskId, onFocusTaskHandled, onSelectTask, rfInstance],
+  );
+
+  const handleUserMoveStart = useCallback(
+    (event: MouseEvent | TouchEvent | null) => {
+      if (event && focusTaskId) onFocusTaskHandled?.(focusTaskId);
+    },
+    [focusTaskId, onFocusTaskHandled],
   );
 
   const handleEditTitleFromKey = useCallback(
@@ -994,7 +1157,7 @@ export function GraphArea({
         send({ type: "SET_SELECTION", nodeIds: [selectedTask.id] });
       }
     },
-    onFormat: handleFormat,
+    onFormat: formatAndFitGraph,
     onConnectIsolated,
     onSelectTask: handleSelectTaskFromKey,
     onSelectEdge: setSelectedEdgeId,
@@ -1129,12 +1292,13 @@ export function GraphArea({
       <ReactFlow
         nodes={reactFlowNodes}
         edges={reactFlowEdges}
-        onNodesChange={handleNodesChangeWithFormat}
+        onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
         onNodeClick={handleNodeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={onPaneClick}
+        onMoveStart={handleUserMoveStart}
         onSelectionChange={handleSelectionChange}
         onInit={setRfInstance}
         nodeTypes={nodeTypes}
@@ -1146,10 +1310,15 @@ export function GraphArea({
         multiSelectionKeyCode="Shift"
         selectionMode={SelectionMode.Partial}
         zoomOnDoubleClick={false}
-        fitView
       >
         <Background />
         <Controls className="hidden lg:flex" />
+        <FocusTaskViewport
+          taskId={focusTaskId}
+          onHandled={onFocusTaskHandled}
+          onPrepare={prepareTaskFocus}
+          containerRef={containerRef}
+        />
         {selectedTask && !isSelectionMode && !isMobile && (
           <TaskDetailPanel
             ref={taskDetailPanelRef}
@@ -1263,7 +1432,7 @@ export function GraphArea({
 
         <button
           type="button"
-          onClick={handleFormat}
+          onClick={formatAndFitGraph}
           className={`flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 transition-colors ${
             isSelectionMode ? "hidden" : ""
           }`}
@@ -1351,7 +1520,7 @@ export function GraphArea({
           moreOpen={mobileActionsOpen}
           onToggleSelection={() => send({ type: "TOGGLE_MODE" })}
           onFitView={() => rfInstance?.fitView({ duration: 400 })}
-          onFormat={handleFormat}
+          onFormat={formatAndFitGraph}
           onToggleMore={() => setMobileActionsOpen((open) => !open)}
           onImport={() => {
             setMobileActionsOpen(false);
