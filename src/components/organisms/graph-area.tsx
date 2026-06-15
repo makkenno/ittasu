@@ -19,7 +19,7 @@ import ReactFlow, {
   type NodeTypes,
   type ReactFlowInstance,
   SelectionMode,
-  useStoreApi,
+  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import {
@@ -133,23 +133,49 @@ function getFocusedViewport(
   };
 }
 
-function animateViewport(
-  viewportElement: HTMLElement,
-  target: { x: number; y: number; zoom: number },
-  duration: number,
-) {
-  const startTransform = getComputedStyle(viewportElement).transform;
-  for (const animation of viewportElement.getAnimations()) animation.cancel();
-  if (duration === 0) return undefined;
+function animateViewport({
+  start,
+  target,
+  duration,
+  onUpdate,
+  onFinish,
+}: {
+  start: { x: number; y: number; zoom: number };
+  target: { x: number; y: number; zoom: number };
+  duration: number;
+  onUpdate: (viewport: { x: number; y: number; zoom: number }) => void;
+  onFinish: () => void;
+}) {
+  if (duration === 0) {
+    onUpdate(target);
+    onFinish();
+    return () => {};
+  }
 
-  const targetTransform = `translate(${target.x}px, ${target.y}px) scale(${target.zoom})`;
-  return viewportElement.animate(
-    [{ transform: startTransform }, { transform: targetTransform }],
-    {
-      duration,
-      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-    },
-  );
+  let frame: number;
+  let cancelled = false;
+  const startedAt = performance.now();
+  const tick = (now: number) => {
+    if (cancelled) return;
+    const progress = Math.min((now - startedAt) / duration, 1);
+    const eased = 1 - (1 - progress) ** 3;
+    onUpdate({
+      x: start.x + (target.x - start.x) * eased,
+      y: start.y + (target.y - start.y) * eased,
+      zoom: start.zoom + (target.zoom - start.zoom) * eased,
+    });
+    if (progress < 1) {
+      frame = window.requestAnimationFrame(tick);
+    } else {
+      onFinish();
+    }
+  };
+  frame = window.requestAnimationFrame(tick);
+
+  return () => {
+    cancelled = true;
+    window.cancelAnimationFrame(frame);
+  };
 }
 
 function FocusTaskViewport({
@@ -160,12 +186,14 @@ function FocusTaskViewport({
 }: {
   taskId: string | null | undefined;
   onHandled?: (taskId: string) => void;
-  onPrepare: () => void;
+  onPrepare: (taskId: string) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const store = useStoreApi();
+  const reactFlow = useReactFlow();
   const prepareRef = useRef(onPrepare);
+  const reactFlowRef = useRef(reactFlow);
   prepareRef.current = onPrepare;
+  reactFlowRef.current = reactFlow;
 
   useEffect(() => {
     if (!taskId) return;
@@ -173,32 +201,31 @@ function FocusTaskViewport({
     let attempts = 0;
     let retryTimer: number;
     let focusTimer: number;
-    let handledTimer: number;
-    let viewportAnimation: Animation | undefined;
+    let cancelViewportAnimation: (() => void) | undefined;
     const focusTask = () => {
       const container = containerRef.current;
       const node = container?.querySelector<HTMLElement>(
         `.react-flow__node[data-id="${CSS.escape(taskId)}"]`,
       );
-      const viewportElement = container?.querySelector<HTMLElement>(
-        ".react-flow__viewport",
-      );
-      if (!container || !node || !viewportElement) return;
+      if (!container || !node) return;
 
-      const [x, y, zoom] = store.getState().transform;
-      const viewport = getFocusedViewport(container, node, { x, y, zoom });
+      const currentViewport = reactFlowRef.current.getViewport();
+      const viewport = getFocusedViewport(container, node, currentViewport);
       const reduceMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
       const duration = reduceMotion ? 0 : 350;
-      store.setState({
-        transform: [viewport.x, viewport.y, viewport.zoom],
+      cancelViewportAnimation = animateViewport({
+        start: currentViewport,
+        target: viewport,
+        duration,
+        onUpdate: (nextViewport) => {
+          void reactFlowRef.current.setViewport(nextViewport);
+        },
+        onFinish: () => {
+          onHandled?.(taskId);
+        },
       });
-      viewportAnimation = animateViewport(viewportElement, viewport, duration);
-      handledTimer = window.setTimeout(
-        () => onHandled?.(taskId),
-        duration + 50,
-      );
     };
     const prepareFocus = () => {
       const node = containerRef.current?.querySelector<HTMLElement>(
@@ -212,7 +239,7 @@ function FocusTaskViewport({
       }
       if (!node) return;
 
-      prepareRef.current();
+      prepareRef.current(taskId);
       focusTimer = window.setTimeout(focusTask, 50);
     };
     prepareFocus();
@@ -220,10 +247,9 @@ function FocusTaskViewport({
     return () => {
       window.clearTimeout(retryTimer);
       window.clearTimeout(focusTimer);
-      window.clearTimeout(handledTimer);
-      viewportAnimation?.cancel();
+      cancelViewportAnimation?.();
     };
-  }, [containerRef, onHandled, store, taskId]);
+  }, [containerRef, onHandled, taskId]);
 
   return null;
 }
@@ -625,13 +651,30 @@ export function GraphArea({
   }, [formatGraph, rfInstance]);
 
   const skipNextTaskCountLayoutRef = useRef(false);
-  const prepareTaskFocus = useCallback(() => {
-    formatGraph();
-  }, [formatGraph]);
+  const formatOnFocusTaskIdsRef = useRef<Set<string>>(new Set());
+  const prepareTaskFocus = useCallback(
+    (taskId: string) => {
+      if (!formatOnFocusTaskIdsRef.current.delete(taskId)) return;
+      formatGraph();
+    },
+    [formatGraph],
+  );
 
-  const trackAddedTask = useCallback(() => {
-    skipNextTaskCountLayoutRef.current = true;
-  }, []);
+  const trackAddedTask = useCallback(
+    (taskId: string, formatBeforeFocus: boolean) => {
+      if (formatBeforeFocus) formatOnFocusTaskIdsRef.current.add(taskId);
+      skipNextTaskCountLayoutRef.current = true;
+    },
+    [],
+  );
+
+  const addUnconnectedTask = useCallback(
+    (position?: { x: number; y: number }) => {
+      const newId = onAddTask?.(position);
+      if (newId) trackAddedTask(newId, false);
+    },
+    [onAddTask, trackAddedTask],
+  );
 
   const handleAddTaskAtViewCenter = useCallback(() => {
     if (rfInstance && containerRef.current) {
@@ -650,12 +693,11 @@ export function GraphArea({
         layoutDirection,
       );
 
-      const newId = onAddTask?.(newPosition);
-      if (newId) trackAddedTask();
+      addUnconnectedTask(newPosition);
     } else {
-      onAddTask?.();
+      addUnconnectedTask();
     }
-  }, [layoutDirection, rfInstance, onAddTask, trackAddedTask]);
+  }, [addUnconnectedTask, layoutDirection, rfInstance]);
 
   const handleInsertAtStart = useCallback(() => {
     if (!rfInstance) {
@@ -682,7 +724,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [], [start.id], []);
-    if (newId) trackAddedTask();
+    if (newId) trackAddedTask(newId, true);
   }, [
     rfInstance,
     taskNodes,
@@ -714,7 +756,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [end.id], [], []);
-    if (newId) trackAddedTask();
+    if (newId) trackAddedTask(newId, true);
   }, [
     rfInstance,
     taskNodes,
@@ -752,7 +794,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, predIds, [target.id], removeEdgeIds);
-    if (newId) trackAddedTask();
+    if (newId) trackAddedTask(newId, true);
   }, [
     rfInstance,
     selectedTask,
@@ -790,7 +832,7 @@ export function GraphArea({
     );
     const newPosition = findFreePosition(base, existingNodes, layoutDirection);
     const newId = onAddTask?.(newPosition, [source.id], succIds, removeEdgeIds);
-    if (newId) trackAddedTask();
+    if (newId) trackAddedTask(newId, true);
   }, [
     rfInstance,
     selectedTask,
@@ -824,7 +866,7 @@ export function GraphArea({
       layoutDirection === "TB" ? "LR" : "TB",
     );
     const newId = onAddTask?.(newPosition, predecessors);
-    if (newId) trackAddedTask();
+    if (newId) trackAddedTask(newId, predecessors.length > 0);
   }, [
     rfInstance,
     selectedTask,
@@ -859,6 +901,7 @@ export function GraphArea({
         performDelete: ({ context }) => {
           const { nodesToDelete } = context;
           if (!nodesToDelete || nodesToDelete.size === 0) return;
+          skipNextTaskCountLayoutRef.current = true;
 
           const yankData = exportSelectedNodes(
             taskNodes,
@@ -1060,11 +1103,7 @@ export function GraphArea({
     (taskId: string | null) => {
       if (taskId && rfInstance) {
         const node = rfInstance.getNode(taskId);
-        const viewportElement =
-          containerRef.current?.querySelector<HTMLElement>(
-            ".react-flow__viewport",
-          );
-        if (node && viewportElement && containerRef.current) {
+        if (node && containerRef.current) {
           const zoom = rfInstance.getZoom();
           const width = node.width ?? 0;
           const height = node.height ?? 0;
@@ -1077,11 +1116,19 @@ export function GraphArea({
               (node.position.y + height / 2) * zoom,
             zoom,
           };
-          void rfInstance.setViewport(target);
           const reduceMotion = window.matchMedia(
             "(prefers-reduced-motion: reduce)",
           ).matches;
-          animateViewport(viewportElement, target, reduceMotion ? 0 : 300);
+          const start = rfInstance.getViewport();
+          animateViewport({
+            start,
+            target,
+            duration: reduceMotion ? 0 : 300,
+            onUpdate: (viewport) => {
+              void rfInstance.setViewport(viewport);
+            },
+            onFinish: () => {},
+          });
         }
       }
       if (focusTaskId) onFocusTaskHandled?.(focusTaskId);
@@ -1092,7 +1139,8 @@ export function GraphArea({
 
   const handleUserMoveStart = useCallback(
     (event: MouseEvent | TouchEvent | null) => {
-      if (event && focusTaskId) onFocusTaskHandled?.(focusTaskId);
+      if (!event || !focusTaskId) return;
+      onFocusTaskHandled?.(focusTaskId);
     },
     [focusTaskId, onFocusTaskHandled],
   );
@@ -1213,7 +1261,7 @@ export function GraphArea({
           y: event.clientY,
         });
 
-        onAddTask?.(position);
+        addUnconnectedTask(position);
         lastClickTimeRef.current = 0;
       } else {
         lastClickTimeRef.current = currentTime;
@@ -1221,7 +1269,7 @@ export function GraphArea({
         send({ type: "PANE_CLICK" });
       }
     },
-    [rfInstance, onAddTask, isCompactGraph, isSelectionMode, send],
+    [rfInstance, isCompactGraph, isSelectionMode, send, addUnconnectedTask],
   );
 
   const handleTemplateSelect = useCallback(
