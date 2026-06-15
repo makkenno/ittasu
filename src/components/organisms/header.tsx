@@ -54,8 +54,8 @@ export function Header({
   }));
 
   return (
-    <header className="flex items-center justify-between gap-2 px-3 py-3 md:px-6 md:py-4 border-b bg-white shadow-sm">
-      <div className="flex items-center gap-1 flex-shrink-0">
+    <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b bg-white px-3 py-3 shadow-sm md:flex-nowrap md:px-6 md:py-4">
+      <div className="order-1 flex flex-shrink-0 items-center gap-1">
         {showMenuButton && (
           <button
             type="button"
@@ -70,7 +70,7 @@ export function Header({
         <BackButton onClick={onBackClick} disabled={!hasParent} />
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="order-3 min-w-0 flex-1 basis-full md:order-2 md:basis-auto">
         {hierarchy.length > 0 && (
           <>
             <nav
@@ -119,7 +119,7 @@ export function Header({
         <TaskTitle ref={taskTitleRef} title={title} onChange={onTitleChange} />
       </div>
 
-      <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+      <div className="order-2 ml-auto flex flex-shrink-0 items-center gap-1 md:order-3 md:ml-0 md:gap-2">
         <PreviewButton onClick={onPreviewClick} />
         <CompleteToggle completed={completed} onToggle={onToggleComplete} />
         <ThemeToggle />
