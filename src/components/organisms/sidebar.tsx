@@ -63,7 +63,7 @@ function ProjectNameInput({
     <input
       // biome-ignore lint/a11y/noAutofocus: Editing starts from an explicit user action.
       autoFocus
-      className="flex-1 text-sm bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
+      className="h-8 min-w-0 flex-1 rounded border border-blue-300 bg-white px-2 text-base leading-6 outline-none md:h-auto md:px-1 md:py-0 md:text-sm md:leading-normal"
       value={editingName}
       onChange={(e) => onChange(e.target.value)}
       onBlur={() => {
