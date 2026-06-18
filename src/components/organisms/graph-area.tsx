@@ -418,6 +418,7 @@ export function GraphArea({
   const containerRef = useRef<HTMLDivElement>(null);
   const taskBottomSheetRef = useRef<TaskBottomSheetHandle>(null);
   const taskDetailPanelRef = useRef<TaskDetailPanelHandle>(null);
+  const pendingTitleFocusTaskIdRef = useRef<string | null>(null);
 
   const formatNodes = useCallback(
     (nodesForLayout: TaskNodeType[], edgesForLayout: TaskEdge[]) => {
@@ -476,6 +477,7 @@ export function GraphArea({
   const trackAddedTask = useCallback(
     (taskId: string, formatBeforeFocus: boolean) => {
       if (formatBeforeFocus) formatOnFocusTaskIdsRef.current.add(taskId);
+      pendingTitleFocusTaskIdRef.current = taskId;
       skipNextTaskCountLayoutRef.current = true;
     },
     [],
@@ -753,7 +755,12 @@ export function GraphArea({
           });
         }
       }
-      if (focusTaskId) onFocusTaskHandled?.(focusTaskId);
+      if (focusTaskId) {
+        if (pendingTitleFocusTaskIdRef.current === focusTaskId) {
+          pendingTitleFocusTaskIdRef.current = null;
+        }
+        onFocusTaskHandled?.(focusTaskId);
+      }
       onSelectTask?.(taskId);
     },
     [focusTaskId, onFocusTaskHandled, onSelectTask, rfInstance],
@@ -762,27 +769,45 @@ export function GraphArea({
   const handleUserMoveStart = useCallback(
     (event: MouseEvent | TouchEvent | null) => {
       if (!event || !focusTaskId) return;
+      if (pendingTitleFocusTaskIdRef.current === focusTaskId) {
+        pendingTitleFocusTaskIdRef.current = null;
+      }
       onFocusTaskHandled?.(focusTaskId);
     },
     [focusTaskId, onFocusTaskHandled],
   );
 
+  const focusSelectedTaskTitle = useCallback(() => {
+    taskBottomSheetRef.current?.focusTitle();
+    taskDetailPanelRef.current?.focusTitle();
+  }, []);
+
+  const handleFocusTaskViewportHandled = useCallback(
+    (taskId: string) => {
+      const shouldFocusTitle = pendingTitleFocusTaskIdRef.current === taskId;
+      if (shouldFocusTitle) {
+        pendingTitleFocusTaskIdRef.current = null;
+      }
+
+      onFocusTaskHandled?.(taskId);
+      if (shouldFocusTitle) requestAnimationFrame(focusSelectedTaskTitle);
+    },
+    [focusSelectedTaskTitle, onFocusTaskHandled],
+  );
+
   const handleEditTitleFromKey = useCallback(
     (taskId: string) => {
-      const focusTitle = () => {
-        taskBottomSheetRef.current?.focusTitle();
-        taskDetailPanelRef.current?.focusTitle();
-      };
-
       if (selectedTask?.id === taskId) {
-        focusTitle();
+        focusSelectedTaskTitle();
         return;
       }
 
       onSelectTask?.(taskId);
-      requestAnimationFrame(() => requestAnimationFrame(focusTitle));
+      requestAnimationFrame(() =>
+        requestAnimationFrame(focusSelectedTaskTitle),
+      );
     },
-    [onSelectTask, selectedTask?.id],
+    [focusSelectedTaskTitle, onSelectTask, selectedTask?.id],
   );
 
   useKeyboardShortcuts({
@@ -985,7 +1010,7 @@ export function GraphArea({
         <Controls className="hidden lg:flex" />
         <FocusTaskViewport
           taskId={focusTaskId}
-          onHandled={onFocusTaskHandled}
+          onHandled={handleFocusTaskViewportHandled}
           onPrepare={prepareTaskFocus}
           containerRef={containerRef}
         />
