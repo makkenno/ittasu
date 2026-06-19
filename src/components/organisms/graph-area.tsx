@@ -10,7 +10,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -130,6 +130,27 @@ const resolveClipboardGraph = (
   nodes: clipboardNodes ?? fallbackNodes,
   edges: clipboardEdges ?? fallbackEdges,
 });
+
+const useSyncedSelectedTask = (
+  selectedTask: TaskNodeType | null,
+  onSelectTask?: (taskId: string | null) => void,
+) => {
+  const selectedTaskIdRef = useRef<string | null>(selectedTask?.id ?? null);
+
+  useEffect(() => {
+    selectedTaskIdRef.current = selectedTask?.id ?? null;
+  }, [selectedTask?.id]);
+
+  const selectTask = useCallback(
+    (taskId: string | null) => {
+      selectedTaskIdRef.current = taskId;
+      onSelectTask?.(taskId);
+    },
+    [onSelectTask],
+  );
+
+  return { selectedTaskIdRef, selectTask };
+};
 
 interface MobileGraphToolbarProps {
   moreOpen: boolean;
@@ -435,6 +456,10 @@ export function GraphArea({
   const taskBottomSheetRef = useRef<TaskBottomSheetHandle>(null);
   const taskDetailPanelRef = useRef<TaskDetailPanelHandle>(null);
   const pendingTitleFocusTaskIdRef = useRef<string | null>(null);
+  const { selectedTaskIdRef, selectTask } = useSyncedSelectedTask(
+    selectedTask,
+    onSelectTask,
+  );
 
   const formatNodes = useCallback(
     (nodesForLayout: TaskNodeType[], edgesForLayout: TaskEdge[]) => {
@@ -561,7 +586,7 @@ export function GraphArea({
           for (const id of nodesToDelete) {
             onRemoveTask?.(id);
           }
-          onSelectTask?.(nextSelectionId);
+          selectTask(nextSelectionId);
           const count = nodesToDelete.size;
           addToast(
             count > 1
@@ -787,9 +812,10 @@ export function GraphArea({
     (taskId: string | null) => {
       centerTaskInViewport(taskId);
       finishPendingFocusTask();
-      onSelectTask?.(taskId);
+      setSelectedEdgeId(null);
+      selectTask(taskId);
     },
-    [centerTaskInViewport, finishPendingFocusTask, onSelectTask],
+    [centerTaskInViewport, finishPendingFocusTask, selectTask],
   );
 
   const handleUserMoveStart = useCallback(
@@ -825,18 +851,19 @@ export function GraphArea({
         return;
       }
 
-      onSelectTask?.(taskId);
+      selectTask(taskId);
       requestAnimationFrame(() =>
         requestAnimationFrame(focusSelectedTaskTitle),
       );
     },
-    [focusSelectedTaskTitle, onSelectTask, selectedTask?.id],
+    [focusSelectedTaskTitle, selectTask, selectedTask?.id],
   );
 
   useKeyboardShortcuts({
     enabled: keyboardEnabled,
     selectedNodeIds,
     selectedTaskId: selectedTask?.id ?? null,
+    selectedTaskIdRef,
     selectedEdgeId,
     nodes: taskNodes,
     edges: taskEdges,
@@ -863,7 +890,7 @@ export function GraphArea({
       if (isSelectionMode) {
         send({ type: "TOGGLE_MODE" });
       } else if (selectedTask) {
-        onSelectTask?.(null);
+        selectTask(null);
       } else {
         onEscapeToParent?.();
       }
@@ -1066,7 +1093,7 @@ export function GraphArea({
             send({ type: "REQUEST_DELETE", nodeIds: [taskId] })
           }
           onExportClick={onExportTask}
-          onClose={() => onSelectTask?.(null)}
+          onClose={() => selectTask(null)}
         />
       )}
 

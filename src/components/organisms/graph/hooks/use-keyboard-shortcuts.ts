@@ -8,6 +8,7 @@ interface UseKeyboardShortcutsProps {
   enabled?: boolean;
   selectedNodeIds: Set<string>;
   selectedTaskId: string | null;
+  selectedTaskIdRef?: { current: string | null };
   selectedEdgeId?: string | null;
   nodes: TaskNode[];
   edges: TaskEdge[];
@@ -113,6 +114,7 @@ export function useKeyboardShortcuts({
   enabled = true,
   selectedNodeIds,
   selectedTaskId,
+  selectedTaskIdRef,
   selectedEdgeId = null,
   nodes,
   edges,
@@ -152,15 +154,27 @@ export function useKeyboardShortcuts({
     if (!enabled) return;
 
     const parentId = nodes[0]?.parentId ?? null;
-
+    const getSelectedTaskId = () =>
+      selectedTaskIdRef?.current ?? selectedTaskId;
+    const setSelectedTaskId = (taskId: string | null) => {
+      if (selectedTaskIdRef) selectedTaskIdRef.current = taskId;
+    };
+    const selectNode = (taskId: string) => {
+      setSelectedTaskId(taskId);
+      onSelectTask?.(taskId);
+      onSelectEdge?.(null);
+      if (selectionMode) onExtendSelection?.(taskId);
+    };
+    const selectEdge = (edgeId: string) => {
+      setSelectedTaskId(null);
+      onSelectEdge?.(edgeId);
+      onSelectTask?.(null);
+    };
     const selectMovable = (m: Movable) => {
       if (m.type === "node") {
-        onSelectTask?.(m.id);
-        onSelectEdge?.(null);
-        if (selectionMode) onExtendSelection?.(m.id);
+        selectNode(m.id);
       } else {
-        onSelectEdge?.(m.id);
-        onSelectTask?.(null);
+        selectEdge(m.id);
       }
     };
 
@@ -171,10 +185,12 @@ export function useKeyboardShortcuts({
           null
         );
       }
-      if (selectedTaskId) {
+      const currentSelectedTaskId = getSelectedTaskId();
+      if (currentSelectedTaskId) {
         return (
-          movables.find((m) => m.type === "node" && m.id === selectedTaskId) ??
-          null
+          movables.find(
+            (m) => m.type === "node" && m.id === currentSelectedTaskId,
+          ) ?? null
         );
       }
       return null;
@@ -203,7 +219,10 @@ export function useKeyboardShortcuts({
         return;
       }
       if (selectedNodeIds.size > 0) onDelete?.();
-      else if (selectedTaskId) onDeleteTask?.(selectedTaskId);
+      else {
+        const currentSelectedTaskId = getSelectedTaskId();
+        if (currentSelectedTaskId) onDeleteTask?.(currentSelectedTaskId);
+      }
     };
 
     const handle = (fn: () => void) => (event: KeyboardEvent) => {
@@ -239,17 +258,20 @@ export function useKeyboardShortcuts({
       a: handle(() => (onInsertAfter ?? onAddTask)?.()),
       "Shift+a": handle(() => (onInsertAtEnd ?? onAddTask)?.()),
       Enter: handle(() => {
-        if (selectedTaskId) onOpenDetail?.(selectedTaskId);
+        const currentSelectedTaskId = getSelectedTaskId();
+        if (currentSelectedTaskId) onOpenDetail?.(currentSelectedTaskId);
       }),
       i: handle(() => (onInsertBefore ?? onAddTask)?.()),
       "Shift+i": handle(() => (onInsertAtStart ?? onAddTask)?.()),
       r: handle(() => {
-        if (selectedTaskId) onEditTitle?.(selectedTaskId);
+        const currentSelectedTaskId = getSelectedTaskId();
+        if (currentSelectedTaskId) onEditTitle?.(currentSelectedTaskId);
         else onEditCurrentTitle?.();
       }),
       e: handle(() => onConnectFromSelected?.()),
       x: handle(() => {
-        if (selectedTaskId) onToggleComplete?.(selectedTaskId);
+        const currentSelectedTaskId = getSelectedTaskId();
+        if (currentSelectedTaskId) onToggleComplete?.(currentSelectedTaskId);
       }),
       "[Shift]+v": handle(() => onToggleSelectionMode?.()),
       "[Shift]+f": handle(() => onFormat?.()),
@@ -268,6 +290,7 @@ export function useKeyboardShortcuts({
     enabled,
     selectedNodeIds,
     selectedTaskId,
+    selectedTaskIdRef,
     selectedEdgeId,
     nodes,
     edges,
