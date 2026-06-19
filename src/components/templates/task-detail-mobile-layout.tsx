@@ -24,6 +24,8 @@ interface TaskDetailMobileLayoutProps {
   currentTaskId: string | null;
   currentNodes: TaskNode[];
   currentEdges: TaskEdge[];
+  allNodes: TaskNode[];
+  allEdges: TaskEdge[];
   selectedTask: TaskNode | null;
   hierarchy: TaskHierarchyItem[];
 
@@ -362,6 +364,8 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
           <GraphArea
             nodes={props.currentNodes}
             edges={props.currentEdges}
+            clipboardNodes={props.allNodes}
+            clipboardEdges={props.allEdges}
             selectedTask={props.selectedTask}
             onNodesChange={props.onNodesChange}
             onNodeClick={props.onNodeClick}

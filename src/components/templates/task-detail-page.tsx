@@ -425,6 +425,8 @@ ${memoContent}`;
         currentTaskId={currentTaskId}
         currentNodes={currentNodes}
         currentEdges={currentEdges}
+        allNodes={nodes}
+        allEdges={edges}
         selectedTask={selectedTask}
         hierarchy={hierarchy}
         onProjectNameChange={(newName) =>
@@ -493,6 +495,8 @@ ${memoContent}`;
             <GraphArea
               nodes={currentNodes}
               edges={currentEdges}
+              clipboardNodes={nodes}
+              clipboardEdges={edges}
               selectedTask={selectedTask}
               onNodesChange={handleNodesChange}
               onNodeClick={handleNodeClick}
@@ -525,6 +529,8 @@ ${memoContent}`;
                 <GraphArea
                   nodes={currentNodes}
                   edges={currentEdges}
+                  clipboardNodes={nodes}
+                  clipboardEdges={edges}
                   selectedTask={selectedTask}
                   onNodesChange={handleNodesChange}
                   onNodeClick={handleNodeClick}

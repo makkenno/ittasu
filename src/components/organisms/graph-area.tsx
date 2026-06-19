@@ -67,6 +67,8 @@ import { graphMachine } from "./graph/machines/graph-machine";
 interface GraphAreaProps {
   nodes: TaskNodeType[];
   edges: TaskEdge[];
+  clipboardNodes?: TaskNodeType[];
+  clipboardEdges?: TaskEdge[];
   selectedTask: TaskNodeType | null;
   onNodesChange?: (nodes: TaskNodeType[]) => void;
   onNodeClick?: (taskId: string) => void;
@@ -118,6 +120,16 @@ const getGraphScopeKey = (
   parentId: string | null,
   layoutDirection: GraphLayoutDirection,
 ) => `${parentId ?? "root"}:${layoutDirection}`;
+
+const resolveClipboardGraph = (
+  fallbackNodes: TaskNodeType[],
+  fallbackEdges: TaskEdge[],
+  clipboardNodes?: TaskNodeType[],
+  clipboardEdges?: TaskEdge[],
+) => ({
+  nodes: clipboardNodes ?? fallbackNodes,
+  edges: clipboardEdges ?? fallbackEdges,
+});
 
 interface MobileGraphToolbarProps {
   moreOpen: boolean;
@@ -372,6 +384,8 @@ function TaskReorderDialogHost({
 export function GraphArea({
   nodes: taskNodes,
   edges: taskEdges,
+  clipboardNodes,
+  clipboardEdges,
   selectedTask,
   onNodesChange: onTaskNodesChange,
   onNodeClick,
@@ -411,6 +425,8 @@ export function GraphArea({
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const layoutDirection = getGraphLayoutDirection(isCompactGraph);
+  const { nodes: nodesForClipboard, edges: edgesForClipboard } =
+    resolveClipboardGraph(taskNodes, taskEdges, clipboardNodes, clipboardEdges);
   const nodeTypes: NodeTypes = useMemo(() => ({ taskNode: TaskNode }), []);
   const edgeTypes = useMemo(() => ({ deletableEdge: DeletableEdge }), []);
   const lastClickTimeRef = useRef<number>(0);
@@ -528,8 +544,8 @@ export function GraphArea({
           skipNextTaskCountLayoutRef.current = true;
 
           const yankData = exportSelectedNodes(
-            taskNodes,
-            taskEdges,
+            nodesForClipboard,
+            edgesForClipboard,
             nodesToDelete,
           );
           navigator.clipboard
@@ -723,58 +739,65 @@ export function GraphArea({
     [send],
   );
 
+  const centerTaskInViewport = useCallback(
+    (taskId: string | null) => {
+      if (!taskId || !rfInstance || !containerRef.current) return;
+
+      const node = rfInstance.getNode(taskId);
+      if (!node) return;
+
+      const zoom = rfInstance.getZoom();
+      const width = node.width ?? 0;
+      const height = node.height ?? 0;
+      const target = {
+        x:
+          containerRef.current.clientWidth / 2 -
+          (node.position.x + width / 2) * zoom,
+        y:
+          containerRef.current.clientHeight / 2 -
+          (node.position.y + height / 2) * zoom,
+        zoom,
+      };
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const start = rfInstance.getViewport();
+      animateViewport({
+        start,
+        target,
+        duration: reduceMotion ? 0 : 300,
+        onUpdate: (viewport) => {
+          void rfInstance.setViewport(viewport);
+        },
+        onFinish: () => {},
+      });
+    },
+    [rfInstance],
+  );
+
+  const finishPendingFocusTask = useCallback(() => {
+    if (!focusTaskId) return;
+    if (pendingTitleFocusTaskIdRef.current === focusTaskId) {
+      pendingTitleFocusTaskIdRef.current = null;
+    }
+    onFocusTaskHandled?.(focusTaskId);
+  }, [focusTaskId, onFocusTaskHandled]);
+
   const handleSelectTaskFromKey = useCallback(
     (taskId: string | null) => {
-      if (taskId && rfInstance) {
-        const node = rfInstance.getNode(taskId);
-        if (node && containerRef.current) {
-          const zoom = rfInstance.getZoom();
-          const width = node.width ?? 0;
-          const height = node.height ?? 0;
-          const target = {
-            x:
-              containerRef.current.clientWidth / 2 -
-              (node.position.x + width / 2) * zoom,
-            y:
-              containerRef.current.clientHeight / 2 -
-              (node.position.y + height / 2) * zoom,
-            zoom,
-          };
-          const reduceMotion = window.matchMedia(
-            "(prefers-reduced-motion: reduce)",
-          ).matches;
-          const start = rfInstance.getViewport();
-          animateViewport({
-            start,
-            target,
-            duration: reduceMotion ? 0 : 300,
-            onUpdate: (viewport) => {
-              void rfInstance.setViewport(viewport);
-            },
-            onFinish: () => {},
-          });
-        }
-      }
-      if (focusTaskId) {
-        if (pendingTitleFocusTaskIdRef.current === focusTaskId) {
-          pendingTitleFocusTaskIdRef.current = null;
-        }
-        onFocusTaskHandled?.(focusTaskId);
-      }
+      centerTaskInViewport(taskId);
+      finishPendingFocusTask();
       onSelectTask?.(taskId);
     },
-    [focusTaskId, onFocusTaskHandled, onSelectTask, rfInstance],
+    [centerTaskInViewport, finishPendingFocusTask, onSelectTask],
   );
 
   const handleUserMoveStart = useCallback(
     (event: MouseEvent | TouchEvent | null) => {
       if (!event || !focusTaskId) return;
-      if (pendingTitleFocusTaskIdRef.current === focusTaskId) {
-        pendingTitleFocusTaskIdRef.current = null;
-      }
-      onFocusTaskHandled?.(focusTaskId);
+      finishPendingFocusTask();
     },
-    [focusTaskId, onFocusTaskHandled],
+    [finishPendingFocusTask, focusTaskId],
   );
 
   const focusSelectedTaskTitle = useCallback(() => {
