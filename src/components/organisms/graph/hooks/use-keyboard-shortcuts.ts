@@ -1,5 +1,11 @@
 import { useEffect } from "react";
 import { tinykeys } from "tinykeys";
+import {
+  buildMovables,
+  findNearestNode,
+  type Movable,
+  type NavigationDirection,
+} from "../../../../lib/graph-navigation";
 import { findEndNode, findStartNode } from "../../../../lib/graph-utils";
 import type { TaskEdge } from "../../../../types/edge";
 import type { TaskNode } from "../../../../types/task";
@@ -43,71 +49,6 @@ interface UseKeyboardShortcutsProps {
   onFitView?: () => void;
   onOpenSearch?: () => void;
   onOpenPreview?: () => void;
-}
-
-type Movable =
-  | { type: "node"; id: string; position: { x: number; y: number } }
-  | { type: "edge"; id: string; position: { x: number; y: number } };
-
-function buildMovables(nodes: TaskNode[], edges: TaskEdge[]): Movable[] {
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const result: Movable[] = nodes.map((n) => ({
-    type: "node",
-    id: n.id,
-    position: n.position,
-  }));
-  for (const edge of edges) {
-    const s = nodeMap.get(edge.source);
-    const t = nodeMap.get(edge.target);
-    if (!s || !t) continue;
-    result.push({
-      type: "edge",
-      id: edge.id,
-      position: {
-        x: (s.position.x + t.position.x) / 2,
-        y: (s.position.y + t.position.y) / 2,
-      },
-    });
-  }
-  return result;
-}
-
-function scoreDirection(
-  dx: number,
-  dy: number,
-  direction: "h" | "j" | "k" | "l",
-): number | null {
-  switch (direction) {
-    case "l":
-      if (dx > 0 && Math.abs(dx) >= Math.abs(dy)) return dx + Math.abs(dy) * 2;
-      return null;
-    case "h":
-      if (dx < 0 && Math.abs(dx) >= Math.abs(dy)) return -dx + Math.abs(dy) * 2;
-      return null;
-    case "j":
-      if (dy > 0 && Math.abs(dy) >= Math.abs(dx)) return dy + Math.abs(dx) * 2;
-      return null;
-    case "k":
-      if (dy < 0 && Math.abs(dy) >= Math.abs(dx)) return -dy + Math.abs(dx) * 2;
-      return null;
-  }
-}
-
-function findNearestMovable(
-  current: Movable,
-  candidates: Movable[],
-  direction: "h" | "j" | "k" | "l",
-): Movable | null {
-  let best: { item: Movable; score: number } | null = null;
-  for (const m of candidates) {
-    if (m.type === current.type && m.id === current.id) continue;
-    const dx = m.position.x - current.position.x;
-    const dy = m.position.y - current.position.y;
-    const score = scoreDirection(dx, dy, direction);
-    if (score === null) continue;
-    if (!best || score < best.score) best = { item: m, score };
-  }
-  return best?.item ?? null;
 }
 
 export function useKeyboardShortcuts({
@@ -196,7 +137,7 @@ export function useKeyboardShortcuts({
       return null;
     };
 
-    const move = (direction: "h" | "j" | "k" | "l") => {
+    const move = (direction: NavigationDirection) => {
       const movables = buildMovables(nodes, edges);
       const current = findCurrent(movables);
       if (!current) {
@@ -209,7 +150,7 @@ export function useKeyboardShortcuts({
           });
         return;
       }
-      const next = findNearestMovable(current, movables, direction);
+      const next = findNearestNode(current, movables, direction);
       if (next) selectMovable(next);
     };
 
