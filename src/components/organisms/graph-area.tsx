@@ -675,7 +675,6 @@ export function GraphArea({
     taskCount: taskNodes.length,
     skipNextTaskCountLayoutRef,
     formatGraph,
-    formatAndFitGraph,
   });
 
   const reactFlowNodes: Node<TaskNodeData>[] = useMemo(

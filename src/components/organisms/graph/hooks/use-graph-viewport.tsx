@@ -155,23 +155,19 @@ export function useGraphLayoutLifecycle({
   taskCount,
   skipNextTaskCountLayoutRef,
   formatGraph,
-  formatAndFitGraph,
 }: {
   rfInstance: ReactFlowInstance | null;
   scopeKey: string;
   taskCount: number;
   skipNextTaskCountLayoutRef: React.RefObject<boolean>;
   formatGraph: () => void;
-  formatAndFitGraph: () => void;
 }) {
   const layoutStateRef = useRef<{
     scopeKey: string;
     taskCount: number;
   } | null>(null);
   const formatGraphRef = useRef(formatGraph);
-  const formatAndFitGraphRef = useRef(formatAndFitGraph);
   formatGraphRef.current = formatGraph;
-  formatAndFitGraphRef.current = formatAndFitGraph;
 
   useEffect(() => {
     if (!rfInstance) return undefined;
@@ -179,10 +175,7 @@ export function useGraphLayoutLifecycle({
     const previous = layoutStateRef.current;
     layoutStateRef.current = { scopeKey, taskCount };
 
-    if (!previous || previous.scopeKey !== scopeKey) {
-      const timer = window.setTimeout(() => formatAndFitGraphRef.current(), 50);
-      return () => window.clearTimeout(timer);
-    }
+    if (!previous || previous.scopeKey !== scopeKey) return undefined;
 
     if (previous.taskCount === taskCount) return undefined;
     if (skipNextTaskCountLayoutRef.current) {
