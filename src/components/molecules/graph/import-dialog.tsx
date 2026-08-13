@@ -1,9 +1,8 @@
 import { X } from "lucide-react";
 import { useState } from "react";
-import * as v from "valibot";
 import {
   type ExportedData,
-  ExportedDataSchema,
+  parseImportText,
 } from "../../../lib/export-import-utils";
 
 interface ImportDialogProps {
@@ -19,24 +18,16 @@ export function ImportDialog({ isOpen, onClose, onImport }: ImportDialogProps) {
   if (!isOpen) return null;
 
   const handleImport = () => {
-    try {
-      const json = JSON.parse(text);
-      const result = v.safeParse(ExportedDataSchema, json);
-
-      if (result.success) {
-        onImport(result.output);
-        onClose();
-        setText("");
-        setError(null);
-      } else {
-        const firstError = result.issues[0];
-        setError(
-          `Invalid format: ${firstError.message} at ${firstError.path?.map((p) => p.key).join(".")}`,
-        );
-      }
-    } catch (_e) {
-      setError("Invalid JSON format");
+    const result = parseImportText(text);
+    if (!result.success) {
+      setError(result.error);
+      return;
     }
+
+    onImport(result.data);
+    onClose();
+    setText("");
+    setError(null);
   };
 
   return (
@@ -55,11 +46,11 @@ export function ImportDialog({ isOpen, onClose, onImport }: ImportDialogProps) {
 
         <div className="p-4 flex-1 overflow-y-auto">
           <p className="text-sm text-gray-600 mb-2">
-            エクスポートされたJSONテキストを貼り付けてください。
+            エクスポートされたJSON、またはMarkdownの箇条書きを貼り付けてください。
           </p>
           <textarea
             className="w-full h-64 p-2 border rounded-md font-mono text-base sm:text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder='{"version":1,"nodes":[...],"edges":[...]}'
+            placeholder={"- タスク1\n  - 子タスク1\n  - 子タスク2\n- タスク2"}
             value={text}
             onChange={(e) => {
               setText(e.target.value);

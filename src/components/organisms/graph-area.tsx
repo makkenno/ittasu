@@ -25,6 +25,7 @@ import "reactflow/dist/style.css";
 import {
   type ExportedData,
   exportSelectedNodes,
+  parseImportText,
 } from "../../lib/export-import-utils";
 import {
   findNextSelectionAfterDelete,
@@ -647,18 +648,15 @@ export function GraphArea({
   const handlePasteImport = useCallback(async () => {
     try {
       const text = await navigator.clipboard.readText();
-      const parsed = JSON.parse(text) as ExportedData;
-      if (
-        parsed &&
-        typeof parsed === "object" &&
-        Array.isArray(parsed.nodes) &&
-        Array.isArray(parsed.edges)
-      ) {
-        onImportTasks?.(parsed);
-        addToast("クリップボードからインポートしました", "success");
-      } else {
-        addToast("クリップボードの内容が不正な形式です", "error");
+      const result = parseImportText(text);
+      if (!result.success) {
+        addToast(result.error, "error");
+        send({ type: "OPEN_IMPORT" });
+        return;
       }
+
+      onImportTasks?.(result.data);
+      addToast("クリップボードからインポートしました", "success");
     } catch {
       addToast(
         "クリップボードから読み込めませんでした。インポートダイアログを開きます",

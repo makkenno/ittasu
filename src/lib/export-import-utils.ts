@@ -37,13 +37,142 @@ const TaskEdgeSchema = v.object({
   parentId: v.nullable(v.string()),
 });
 
-export const ExportedDataSchema = v.object({
+const ExportedDataSchema = v.object({
   version: v.number(),
   nodes: v.array(TaskNodeSchema),
   edges: v.array(TaskEdgeSchema),
 });
 
 export type ExportedData = v.InferOutput<typeof ExportedDataSchema>;
+
+type ImportFormat = "json" | "markdown";
+
+type ImportParseResult =
+  | { success: true; data: ExportedData; format: ImportFormat }
+  | { success: false; error: string };
+
+const markdownListItemPattern = /^(\s*)[-+*]\s+(.+?)\s*$/;
+
+const getIndentWidth = (indent: string): number =>
+  Array.from(indent).reduce(
+    (width, character) => width + (character === "\t" ? 2 : 1),
+    0,
+  );
+
+type MarkdownListItemsResult =
+  | { success: true; listItems: { indent: number; title: string }[] }
+  | { success: false; error: string };
+
+const extractMarkdownListItems = (text: string): MarkdownListItemsResult => {
+  const listItems: { indent: number; title: string }[] = [];
+
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    if (line.trim() === "") continue;
+
+    const match = line.match(markdownListItemPattern);
+    const indent = match?.[1];
+    const title = match?.[2];
+    if (indent === undefined || title === undefined) {
+      return {
+        success: false,
+        error: `${index + 1}行目を箇条書きとして読み取れませんでした`,
+      };
+    }
+
+    listItems.push({
+      indent: getIndentWidth(indent),
+      title,
+    });
+  }
+
+  if (listItems.length === 0) {
+    return { success: false, error: "インポートするタスクがありません" };
+  }
+
+  return { success: true, listItems };
+};
+
+const parseMarkdownTaskList = (text: string): ImportParseResult => {
+  const extracted = extractMarkdownListItems(text);
+  if (!extracted.success) return extracted;
+
+  const now = new Date();
+  const nodes: TaskNode[] = [];
+  const edges: TaskEdge[] = [];
+  const ancestorStack: { indent: number; id: string }[] = [];
+  const previousSiblingByParent = new Map<string, string>();
+
+  for (const [index, item] of extracted.listItems.entries()) {
+    while (
+      ancestorStack.length > 0 &&
+      (ancestorStack.at(-1)?.indent ?? -1) >= item.indent
+    ) {
+      ancestorStack.pop();
+    }
+
+    const parentId = ancestorStack.at(-1)?.id ?? null;
+    const id = `markdown-task-${index + 1}`;
+    nodes.push({
+      id,
+      title: item.title,
+      memo: "",
+      completed: false,
+      parentId,
+      projectId: null,
+      position: { x: 0, y: 0 },
+      createdAt: now,
+      updatedAt: now,
+      completedAt: null,
+    });
+
+    const scopeKey = parentId ?? "__root__";
+    const previousSiblingId = previousSiblingByParent.get(scopeKey);
+    if (previousSiblingId) {
+      edges.push({
+        id: `markdown-edge-${edges.length + 1}`,
+        source: previousSiblingId,
+        target: id,
+        parentId,
+      });
+    }
+    previousSiblingByParent.set(scopeKey, id);
+    ancestorStack.push({ indent: item.indent, id });
+  }
+
+  return {
+    success: true,
+    format: "markdown",
+    data: { version: 1, nodes, edges },
+  };
+};
+
+export const parseImportText = (text: string): ImportParseResult => {
+  const trimmedText = text.trim();
+  if (!trimmedText) {
+    return { success: false, error: "インポートする内容を入力してください" };
+  }
+
+  try {
+    const json = JSON.parse(trimmedText);
+    const result = v.safeParse(ExportedDataSchema, json);
+    if (result.success) {
+      return { success: true, data: result.output, format: "json" };
+    }
+
+    const firstIssue = result.issues[0];
+    const path = firstIssue?.path?.map((part) => part.key).join(".");
+    return {
+      success: false,
+      error: `JSONの形式が正しくありません${path ? ` (${path})` : ""}`,
+    };
+  } catch {
+    if (trimmedText.startsWith("{") || trimmedText.startsWith("[")) {
+      return { success: false, error: "JSONの構文が正しくありません" };
+    }
+  }
+
+  return parseMarkdownTaskList(text);
+};
 
 export const exportSubgraph = (
   rootId: string,
