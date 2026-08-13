@@ -1,7 +1,7 @@
 import { useState } from "react";
-import TextareaAutosize from "react-textarea-autosize";
 import { cn } from "../../../lib/utils";
 import type { TaskNode } from "../../../types/task";
+import { MarkdownEditor } from "../../molecules/memo/markdown-editor";
 import { MarkdownPreview } from "../../molecules/memo/markdown-preview";
 
 interface TaskPreviewSectionProps {
@@ -107,14 +107,13 @@ export function TaskPreviewSection({
 
       <div className="group relative min-h-[2rem]">
         {isEditingMemo ? (
-          <TextareaAutosize
+          <MarkdownEditor
             autoFocus
             value={memo}
-            onChange={(e) => setMemo(e.target.value)}
+            onChange={setMemo}
             onBlur={handleMemoSubmit}
             onKeyDown={(e) => handleKeyDown(e, handleMemoSubmit)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] resize-none"
-            placeholder="メモを入力..."
+            autoSize
             minRows={3}
           />
         ) : (

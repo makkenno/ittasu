@@ -1,5 +1,24 @@
-import { useImperativeHandle, useRef } from "react";
+import {
+  Bold,
+  Code2,
+  Heading2,
+  IndentDecrease,
+  IndentIncrease,
+  Italic,
+  Link,
+  List,
+  ListOrdered,
+  Quote,
+} from "lucide-react";
+import { useCallback, useImperativeHandle, useRef } from "react";
+import TextareaAutosize from "react-textarea-autosize";
 import { isEscapeKey } from "../../../lib/keyboard";
+import {
+  applyMarkdownFormat,
+  continueMarkdownList,
+  type MarkdownFormat,
+} from "../../../lib/markdown-editor-utils";
+import { cn } from "../../../lib/utils";
 import { useEditSession } from "../../../stores/use-edit-session";
 
 export interface MarkdownEditorHandle {
@@ -10,9 +29,62 @@ interface MarkdownEditorProps {
   value: string;
   onChange?: (value: string) => void;
   ref?: React.Ref<MarkdownEditorHandle>;
+  autoFocus?: boolean;
+  autoSize?: boolean;
+  minRows?: number;
+  id?: string;
+  ariaLabel?: string;
+  placeholder?: string;
+  className?: string;
+  onBlur?: React.FocusEventHandler<HTMLTextAreaElement>;
+  onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
 }
 
-export function MarkdownEditor({ value, onChange, ref }: MarkdownEditorProps) {
+const toolbarItems: {
+  format: MarkdownFormat;
+  label: string;
+  shortcut?: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { format: "heading", label: "見出し", icon: Heading2 },
+  { format: "bulletList", label: "箇条書き", icon: List },
+  { format: "orderedList", label: "番号付きリスト", icon: ListOrdered },
+  { format: "indent", label: "ネストを深くする", icon: IndentIncrease },
+  { format: "outdent", label: "ネストを浅くする", icon: IndentDecrease },
+  { format: "bold", label: "太字", shortcut: "Ctrl/⌘ B", icon: Bold },
+  { format: "italic", label: "斜体", shortcut: "Ctrl/⌘ I", icon: Italic },
+  { format: "link", label: "リンク", shortcut: "Ctrl/⌘ K", icon: Link },
+  { format: "code", label: "インラインコード", icon: Code2 },
+  { format: "quote", label: "引用", icon: Quote },
+];
+
+const getKeyboardFormat = (
+  event: React.KeyboardEvent<HTMLTextAreaElement>,
+): MarkdownFormat | undefined => {
+  if (!event.metaKey && !event.ctrlKey) return undefined;
+
+  const formatByKey: Record<string, MarkdownFormat | undefined> = {
+    b: "bold",
+    i: "italic",
+    k: "link",
+  };
+  return formatByKey[event.key.toLowerCase()];
+};
+
+export function MarkdownEditor({
+  value,
+  onChange,
+  ref,
+  autoFocus = false,
+  autoSize = false,
+  minRows = 3,
+  id,
+  ariaLabel = "Markdownエディタ",
+  placeholder = "Markdown形式でメモを入力...",
+  className,
+  onBlur,
+  onKeyDown,
+}: MarkdownEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { handleFocus, handleBlur } = useEditSession();
 
@@ -20,22 +92,139 @@ export function MarkdownEditor({ value, onChange, ref }: MarkdownEditorProps) {
     focus: () => textareaRef.current?.focus(),
   }));
 
+  const commitEdit = useCallback(
+    (edit: { value: string; selectionStart: number; selectionEnd: number }) => {
+      const textarea = textareaRef.current;
+      if (!textarea || !onChange) return;
+
+      onChange(edit.value);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(edit.selectionStart, edit.selectionEnd);
+      });
+    },
+    [onChange],
+  );
+
+  const applyFormat = useCallback(
+    (format: MarkdownFormat) => {
+      const textarea = textareaRef.current;
+      if (!textarea || !onChange) return;
+
+      const edit = applyMarkdownFormat(
+        value,
+        textarea.selectionStart,
+        textarea.selectionEnd,
+        format,
+      );
+      commitEdit(edit);
+    },
+    [commitEdit, onChange, value],
+  );
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.nativeEvent.isComposing) return;
+
+    const keyboardFormat = getKeyboardFormat(event);
+    if (keyboardFormat) {
+      event.preventDefault();
+      applyFormat(keyboardFormat);
+      return;
+    }
+
+    if (
+      event.key === "Enter" &&
+      !event.altKey &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      !event.ctrlKey
+    ) {
+      const edit = continueMarkdownList(
+        value,
+        event.currentTarget.selectionStart,
+        event.currentTarget.selectionEnd,
+      );
+      if (edit) {
+        event.preventDefault();
+        commitEdit(edit);
+        return;
+      }
+    }
+
+    if (isEscapeKey(event)) {
+      event.preventDefault();
+      event.currentTarget.blur();
+      return;
+    }
+
+    onKeyDown?.(event);
+  };
+
+  const sharedTextareaProps = {
+    id,
+    ref: textareaRef,
+    value,
+    placeholder,
+    "aria-label": ariaLabel,
+    onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+      onChange?.(event.target.value),
+    onFocus: handleFocus,
+    onBlur: (event: React.FocusEvent<HTMLTextAreaElement>) => {
+      handleBlur();
+      onBlur?.(event);
+    },
+    onKeyDown: handleKeyDown,
+    autoCapitalize: "sentences" as const,
+    spellCheck: true,
+  };
+
   return (
-    <textarea
-      ref={textareaRef}
-      value={value}
-      onChange={(e) => onChange?.(e.target.value)}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={(e) => {
-        if (e.nativeEvent.isComposing) return;
-        if (isEscapeKey(e)) {
-          e.preventDefault();
-          e.currentTarget.blur();
-        }
-      }}
-      className="w-full h-full p-4 font-mono text-base sm:text-sm border-0 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-      placeholder="Markdown形式でメモを入力..."
-    />
+    <div
+      className={cn(
+        "flex min-h-0 flex-col overflow-hidden bg-white",
+        autoSize ? "rounded-md border border-gray-300" : "h-full",
+        className,
+      )}
+    >
+      <div
+        role="toolbar"
+        aria-label="Markdown書式"
+        className="flex min-h-12 shrink-0 touch-pan-x items-center gap-2 overflow-x-auto overscroll-x-contain border-b border-gray-200 bg-gray-50 px-2 py-1 [scrollbar-width:none] sm:min-h-10 sm:gap-0.5 sm:px-1.5 [&::-webkit-scrollbar]:hidden"
+      >
+        <span className="mr-1 hidden shrink-0 px-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 sm:inline">
+          Markdown
+        </span>
+        {toolbarItems.map(({ format, label, shortcut, icon: Icon }) => (
+          <button
+            key={format}
+            type="button"
+            aria-label={label}
+            title={shortcut ? `${label} (${shortcut})` : label}
+            disabled={!onChange}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={() => applyFormat(format)}
+            className="flex size-11 shrink-0 touch-manipulation cursor-pointer select-none items-center justify-center rounded-md text-gray-600 transition-colors duration-200 hover:bg-gray-200 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-40 sm:size-8 sm:rounded"
+          >
+            <Icon className="size-[18px] sm:size-4" />
+          </button>
+        ))}
+      </div>
+
+      {autoSize ? (
+        <TextareaAutosize
+          {...sharedTextareaProps}
+          autoFocus={autoFocus}
+          minRows={minRows}
+          className="w-full resize-none border-0 bg-transparent p-3 font-mono text-base focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm"
+        />
+      ) : (
+        <textarea
+          {...sharedTextareaProps}
+          // biome-ignore lint/a11y/noAutofocus: Focus can be requested by an explicit user action.
+          autoFocus={autoFocus}
+          className="min-h-0 w-full flex-1 resize-none border-0 bg-transparent p-4 font-mono text-base focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm"
+        />
+      )}
+    </div>
   );
 }
