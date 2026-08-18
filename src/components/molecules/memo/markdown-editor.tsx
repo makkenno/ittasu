@@ -5,12 +5,19 @@ import {
   IndentDecrease,
   IndentIncrease,
   Italic,
+  Keyboard,
   Link,
   List,
   ListOrdered,
   Quote,
 } from "lucide-react";
-import { useCallback, useImperativeHandle, useRef } from "react";
+import {
+  useCallback,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { isEscapeKey } from "../../../lib/keyboard";
 import {
@@ -86,6 +93,9 @@ export function MarkdownEditor({
   onKeyDown,
 }: MarkdownEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const keyboardHelpId = useId();
+  const [tabMovesFocus, setTabMovesFocus] = useState(false);
+  const [tabEscapeReady, setTabEscapeReady] = useState(false);
   const { handleFocus, handleBlur } = useEditSession();
 
   useImperativeHandle(ref, () => ({
@@ -122,8 +132,40 @@ export function MarkdownEditor({
     [commitEdit, onChange, value],
   );
 
+  const handleTabNavigationKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ): boolean => {
+    if (event.key === "Tab") {
+      if (tabMovesFocus || tabEscapeReady || !onChange) {
+        setTabEscapeReady(false);
+        onKeyDown?.(event);
+        return true;
+      }
+
+      event.preventDefault();
+      applyFormat(event.shiftKey ? "outdent" : "indent");
+      return true;
+    }
+
+    if (isEscapeKey(event)) {
+      event.preventDefault();
+      setTabEscapeReady(true);
+      return true;
+    }
+
+    if (
+      tabEscapeReady &&
+      !["Alt", "Control", "Meta", "Shift"].includes(event.key)
+    ) {
+      setTabEscapeReady(false);
+    }
+
+    return false;
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) return;
+    if (handleTabNavigationKeyDown(event)) return;
 
     const keyboardFormat = getKeyboardFormat(event);
     if (keyboardFormat) {
@@ -151,14 +193,14 @@ export function MarkdownEditor({
       }
     }
 
-    if (isEscapeKey(event)) {
-      event.preventDefault();
-      event.currentTarget.blur();
-      return;
-    }
-
     onKeyDown?.(event);
   };
+
+  const keyboardHelp = tabEscapeReady
+    ? "次のTabまたはShift+Tabでエディタからフォーカスを移動します"
+    : tabMovesFocus
+      ? "Tab / Shift+Tab: フォーカス移動"
+      : "Tab: インデント · Shift+Tab: インデント解除 · Esc→Tab: フォーカス移動";
 
   const sharedTextareaProps = {
     id,
@@ -166,10 +208,12 @@ export function MarkdownEditor({
     value,
     placeholder,
     "aria-label": ariaLabel,
+    "aria-describedby": keyboardHelpId,
     onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
       onChange?.(event.target.value),
     onFocus: handleFocus,
     onBlur: (event: React.FocusEvent<HTMLTextAreaElement>) => {
+      setTabEscapeReady(false);
       handleBlur();
       onBlur?.(event);
     },
@@ -208,6 +252,36 @@ export function MarkdownEditor({
             <Icon className="size-[18px] sm:size-4" />
           </button>
         ))}
+        <span
+          aria-hidden="true"
+          className="mx-1 h-6 w-px shrink-0 bg-gray-300"
+        />
+        <button
+          type="button"
+          aria-label="Tabキーでフォーカス移動"
+          aria-pressed={tabMovesFocus}
+          title={
+            tabMovesFocus
+              ? "Tabキーの動作をインデントに戻す"
+              : "Tabキーの動作をフォーカス移動に切り替える"
+          }
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setTabMovesFocus((current) => !current);
+            setTabEscapeReady(false);
+          }}
+          className={cn(
+            "flex h-11 shrink-0 touch-manipulation cursor-pointer select-none items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors duration-200 hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-8 sm:rounded",
+            tabMovesFocus
+              ? "bg-blue-100 text-blue-700"
+              : "text-gray-600 hover:text-gray-900",
+          )}
+        >
+          <Keyboard className="size-[18px] sm:size-4" aria-hidden="true" />
+          <span className="whitespace-nowrap">
+            {tabMovesFocus ? "Tabで移動" : "Tabで字下げ"}
+          </span>
+        </button>
       </div>
 
       {autoSize ? (
@@ -225,6 +299,16 @@ export function MarkdownEditor({
           className="min-h-0 w-full flex-1 resize-none border-0 bg-transparent p-4 font-mono text-base focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 sm:text-sm"
         />
       )}
+      <output
+        id={keyboardHelpId}
+        aria-live="polite"
+        className={cn(
+          "shrink-0 border-t border-gray-200 bg-gray-50 px-3 py-1 text-[11px] leading-4 text-gray-600",
+          tabEscapeReady && "bg-blue-50 text-blue-700",
+        )}
+      >
+        {keyboardHelp}
+      </output>
     </div>
   );
 }

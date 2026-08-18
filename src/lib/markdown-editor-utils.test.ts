@@ -55,6 +55,29 @@ describe("applyMarkdownFormat", () => {
     );
     expect(outdented.value).toBe("- first\n- second");
   });
+
+  it("indents the current list item when the selection is a caret", () => {
+    const indented = applyMarkdownFormat("- parent\n- child", 16, 16, "indent");
+
+    expect(indented).toEqual({
+      value: "- parent\n  - child",
+      selectionStart: 18,
+      selectionEnd: 18,
+    });
+
+    expect(
+      applyMarkdownFormat(
+        indented.value,
+        indented.selectionStart,
+        indented.selectionEnd,
+        "outdent",
+      ),
+    ).toEqual({
+      value: "- parent\n- child",
+      selectionStart: 16,
+      selectionEnd: 16,
+    });
+  });
 });
 
 describe("continueMarkdownList", () => {
