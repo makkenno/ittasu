@@ -43,6 +43,7 @@ interface MarkdownEditorProps {
   ariaLabel?: string;
   placeholder?: string;
   className?: string;
+  onFocus?: React.FocusEventHandler<HTMLTextAreaElement>;
   onBlur?: React.FocusEventHandler<HTMLTextAreaElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
 }
@@ -89,6 +90,7 @@ export function MarkdownEditor({
   ariaLabel = "Markdownエディタ",
   placeholder = "Markdown形式でメモを入力...",
   className,
+  onFocus,
   onBlur,
   onKeyDown,
 }: MarkdownEditorProps) {
@@ -211,7 +213,10 @@ export function MarkdownEditor({
     "aria-describedby": keyboardHelpId,
     onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
       onChange?.(event.target.value),
-    onFocus: handleFocus,
+    onFocus: (event: React.FocusEvent<HTMLTextAreaElement>) => {
+      handleFocus();
+      onFocus?.(event);
+    },
     onBlur: (event: React.FocusEvent<HTMLTextAreaElement>) => {
       setTabEscapeReady(false);
       handleBlur();
