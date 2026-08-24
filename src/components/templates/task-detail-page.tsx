@@ -572,6 +572,7 @@ ${memoContent}`;
                 collapsible={true}
               >
                 <MemoArea
+                  key={currentTaskId}
                   ref={memoAreaRef}
                   memo={memo}
                   onMemoChange={handleMemoChange}

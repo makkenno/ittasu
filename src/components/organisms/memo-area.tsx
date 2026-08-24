@@ -1,5 +1,11 @@
 import { X } from "lucide-react";
-import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { isEscapeKey } from "../../lib/keyboard";
 import { useIsMobile } from "../../lib/use-is-mobile";
 import { cn } from "../../lib/utils";
@@ -24,6 +30,8 @@ interface MemoAreaProps {
 }
 
 type TabMode = "edit" | "preview" | "split";
+// 入力中のストア全体の再描画・永続化を避け、操作が止まってから保存する。
+const MOBILE_MEMO_COMMIT_DELAY_MS = 500;
 
 const getFocusableElements = (container: HTMLElement) =>
   Array.from(
@@ -213,7 +221,7 @@ function MemoModeControls({
   );
 }
 
-function MemoContent({
+function BufferedMemoContent({
   mode,
   memo,
   isMobile,
@@ -228,7 +236,70 @@ function MemoContent({
   onMemoChange?: (newMemo: string) => void;
   onOpenFullScreen: () => void;
 }) {
-  if (mode === "preview") return <MarkdownPreview value={memo} />;
+  const [draftMemo, setDraftMemo] = useState(memo);
+  const draftMemoRef = useRef(memo);
+  const committedMemoRef = useRef(memo);
+  const onMemoChangeRef = useRef(onMemoChange);
+  const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  onMemoChangeRef.current = onMemoChange;
+
+  const clearPendingCommit = useCallback(() => {
+    if (commitTimeoutRef.current === null) return;
+    clearTimeout(commitTimeoutRef.current);
+    commitTimeoutRef.current = null;
+  }, []);
+
+  const commitDraftMemo = useCallback((nextMemo: string) => {
+    if (nextMemo === committedMemoRef.current) return;
+    committedMemoRef.current = nextMemo;
+    onMemoChangeRef.current?.(nextMemo);
+  }, []);
+
+  const flushDraftMemo = useCallback(() => {
+    clearPendingCommit();
+    commitDraftMemo(draftMemoRef.current);
+  }, [clearPendingCommit, commitDraftMemo]);
+
+  const handleDraftMemoChange = useCallback(
+    (nextMemo: string) => {
+      draftMemoRef.current = nextMemo;
+      setDraftMemo(nextMemo);
+      clearPendingCommit();
+
+      if (!isMobile) {
+        commitDraftMemo(nextMemo);
+        return;
+      }
+
+      commitTimeoutRef.current = setTimeout(
+        flushDraftMemo,
+        MOBILE_MEMO_COMMIT_DELAY_MS,
+      );
+    },
+    [clearPendingCommit, commitDraftMemo, flushDraftMemo, isMobile],
+  );
+
+  useEffect(() => {
+    if (memo === committedMemoRef.current) return;
+    clearPendingCommit();
+    committedMemoRef.current = memo;
+    draftMemoRef.current = memo;
+    setDraftMemo(memo);
+  }, [clearPendingCommit, memo]);
+
+  useEffect(() => {
+    if (!isMobile) flushDraftMemo();
+  }, [flushDraftMemo, isMobile]);
+
+  useEffect(() => {
+    window.addEventListener("pagehide", flushDraftMemo);
+    return () => {
+      window.removeEventListener("pagehide", flushDraftMemo);
+      flushDraftMemo();
+    };
+  }, [flushDraftMemo]);
+
+  if (mode === "preview") return <MarkdownPreview value={draftMemo} />;
 
   if (mode === "split") {
     return (
@@ -236,12 +307,13 @@ function MemoContent({
         <div className="min-w-0 flex-1 border-r">
           <MarkdownEditor
             ref={editorRef}
-            value={memo}
-            onChange={onMemoChange}
+            value={draftMemo}
+            onChange={handleDraftMemoChange}
+            onBlur={flushDraftMemo}
           />
         </div>
         <div className="min-w-0 flex-1 overflow-y-auto">
-          <MarkdownPreview value={memo} />
+          <MarkdownPreview value={draftMemo} />
         </div>
       </div>
     );
@@ -250,8 +322,9 @@ function MemoContent({
   return (
     <MarkdownEditor
       ref={editorRef}
-      value={memo}
-      onChange={onMemoChange}
+      value={draftMemo}
+      onChange={handleDraftMemoChange}
+      onBlur={flushDraftMemo}
       onFocus={() => {
         if (isMobile) onOpenFullScreen();
       }}
@@ -352,7 +425,7 @@ export function MemoArea({
         isFullScreen={isFullScreenEditorOpen}
         mode={effectiveMode}
       >
-        <MemoContent
+        <BufferedMemoContent
           mode={effectiveMode}
           memo={memo}
           isMobile={isMobile}

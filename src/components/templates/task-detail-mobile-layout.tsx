@@ -399,6 +399,7 @@ export function TaskDetailMobileLayout(props: TaskDetailMobileLayoutProps) {
           />
         ) : (
           <MemoArea
+            key={props.currentTaskId}
             memo={props.memo}
             onMemoChange={props.onMemoChange}
             onCopyMemo={props.onCopyMemo}

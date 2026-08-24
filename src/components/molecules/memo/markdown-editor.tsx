@@ -219,8 +219,8 @@ export function MarkdownEditor({
     },
     onBlur: (event: React.FocusEvent<HTMLTextAreaElement>) => {
       setTabEscapeReady(false);
-      handleBlur();
       onBlur?.(event);
+      handleBlur();
     },
     onKeyDown: handleKeyDown,
     autoCapitalize: "sentences" as const,
